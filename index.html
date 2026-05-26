@@ -32,6 +32,15 @@
     <button class="nav-btn" data-tab="perfil" title="Meu Perfil">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7" stroke-linecap="round"/></svg>
     </button>
+    <button class="nav-btn" id="btn-theme-toggle" title="Mudar Tema" style="margin-top: auto;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    </button>
+  </nav>
+
+  <div class="theme-menu" id="theme-menu">
+    <button class="theme-option active" data-theme-val="dark">🌙 Modo Escuro</button>
+    <button class="theme-option" data-theme-val="light">☀️ Modo Claro</button>
+  </div>
   </nav>
 
   <main class="main">
@@ -481,5 +490,6 @@
 
   <script src="app.js"></script>
   <script src="perfil.js"></script>
+  <script src="temas.js"></script>
 </body>
 </html>

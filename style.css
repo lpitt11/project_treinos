@@ -618,4 +618,60 @@ textarea { resize: vertical; min-height: 60px; }
   .cards-row { grid-template-columns: 1fr 1fr; }
   .floating-timer { padding: 24px; width: 90%; }
   .floating-timer .timer-display { font-size: 56px; }
-}     
+}
+
+/* ===== TEMA CLARO ===== */
+[data-theme="light"] {
+  --bg: #f4f4f5;
+  --bg2: #ffffff;
+  --bg3: #f9f9fa;
+  --border: #e4e4e7;
+  --text: #0d0d0f;
+  --text2: #52525b;
+  --text3: #a1a1aa;
+  --accent: #8bc200; /* Um tom um pouco mais escuro para ler bem no fundo branco */
+}
+
+/* ===== MENU FLUTUANTE DE TEMAS ===== */
+.theme-menu {
+  position: fixed;
+  left: 80px; /* Fica logo ao lado da barra lateral */
+  bottom: 20px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  box-shadow: var(--shadow);
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 101;
+}
+.theme-menu.open {
+  display: flex;
+  animation: fadeIn 0.2s ease;
+}
+.theme-option {
+  background: transparent;
+  border: none;
+  color: var(--text2);
+  padding: 8px 16px;
+  text-align: left;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.theme-option:hover {
+  background: var(--bg3);
+  color: var(--text);
+}
+.theme-option.active {
+  background: rgba(200,241,53,0.15);
+  color: var(--accent);
+}

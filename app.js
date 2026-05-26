@@ -1,5 +1,6 @@
 // ===== STATE =====
 const state = {
+  tema: 'dark',
   perfil: { nome: '', foto: '', idade: '', peso: '', altura: '', objetivo: 'hipertrofia' },
   planos: [],
   historico: [],
@@ -11,11 +12,12 @@ const state = {
   tempExercicios: [],   
   tempAlimentos: [],    
   editingExercicioIdx: null,
-  confirmCallback: null,
+  confirmCallback: null,  
 };
 
 // ===== PERSISTENCE =====
 function save() {
+  localStorage.setItem('fitcore_tema', state.tema);
   localStorage.setItem('fitcore_perfil', JSON.stringify(state.perfil));
   localStorage.setItem('fitcore_planos', JSON.stringify(state.planos));
   localStorage.setItem('fitcore_historico', JSON.stringify(state.historico));
@@ -25,6 +27,7 @@ function save() {
 }
 function load() {
   try {
+    state.tema = localStorage.getItem('fitcore_tema') || 'dark';
     state.perfil = JSON.parse(localStorage.getItem('fitcore_perfil')) || { nome: '', foto: '', idade: '', peso: '', altura: '', objetivo: 'hipertrofia' };
     state.planos = JSON.parse(localStorage.getItem('fitcore_planos')) || [];
     state.historico = JSON.parse(localStorage.getItem('fitcore_historico')) || [];
@@ -40,10 +43,18 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 // ===== NAVIGATION =====
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    // SE O BOTÃO NÃO TIVER O ATRIBUTO DE ABA (COMO O DE TEMAS), IGNORA A TROCA DE TELA
+    if (!btn.dataset.tab) return; 
+
+    document.querySelectorAll('.nav-btn').forEach(b => {
+      // Remove o active apenas dos botões que são de abas
+      if (b.dataset.tab) b.classList.remove('active');
+    });
+    
     btn.classList.add('active');
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    
     if(btn.dataset.tab === 'dashboard') {
       updateDashboard();
       renderPesoChart();
@@ -192,6 +203,11 @@ function renderPesoChart() {
   
   if(pesoChartInst) pesoChartInst.destroy();
   
+  // Verifica se o tema é claro para mudar a cor da grade do gráfico
+  const isLight = state.tema === 'light';
+  const gridColor = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
+  const tickColor = isLight ? '#52525b' : '#9090a0';
+  
   pesoChartInst = new Chart(ctx, {
     type: 'line',
     data: {
@@ -211,8 +227,8 @@ function renderPesoChart() {
       responsive: true, 
       maintainAspectRatio: false,
       scales: { 
-        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9090a0'} },
-        x: { grid: { display: false }, ticks: { color: '#9090a0'} }
+        y: { grid: { color: gridColor }, ticks: { color: tickColor } },
+        x: { grid: { display: false }, ticks: { color: tickColor } }
       }, 
       plugins: { legend: { display: false } } 
     }
