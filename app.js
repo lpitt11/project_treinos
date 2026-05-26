@@ -92,15 +92,24 @@ function updateDashboard() {
   document.getElementById('stat-planos').textContent = state.planos.length;
   document.getElementById('stat-refeicoes').textContent = state.dieta.refeicoes.length;
 
-  // Próximos treinos
+  // Próximos treinos (Clicáveis)
   const diasSemana = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
   const diaHoje = diasSemana[hoje.getDay()];
   const ul = document.getElementById('proximos-treinos');
   const planosHoje = state.planos.filter(p => p.dias.includes(diaHoje));
+  
   if (planosHoje.length === 0 || state.planos.length === 0) {
     ul.innerHTML = '<li class="empty-msg">Nenhum treino para hoje.</li>';
   } else {
-    ul.innerHTML = planosHoje.map(p => `<li><span>${p.nome}</span><span class="dia-tag">${diaHoje}</span></li>`).join('');
+    ul.innerHTML = planosHoje.map(p => `
+      <li class="hover-card" onclick="abrirExecucao('${p.id}')" title="Clique para iniciar o treino">
+        <span style="display:flex; align-items:center; gap:8px;">
+          <span style="color:var(--accent);">▶</span> 
+          <strong style="color:var(--text);">${p.nome}</strong>
+        </span>
+        <span class="dia-tag">${diaHoje}</span>
+      </li>
+    `).join('');
   }
 
   // Histórico recente
@@ -360,6 +369,7 @@ function renderPlanos() {
         </div>
       ` : ''}
       <div class="plano-actions">
+        <button class="btn-primary" onclick="abrirExecucao('${p.id}')">▶ Executar</button>
         <button class="btn-ghost" onclick="editarPlano('${p.id}')">✏️ Editar</button>
         <button class="btn-ghost" onclick="excluirPlano('${p.id}')">🗑️ Excluir</button>
       </div>
@@ -390,7 +400,93 @@ function excluirPlano(id) {
   });
 }
 
+// ===== MÓDULO: MODO EXECUÇÃO DE TREINO =====
+let currentExecPlanoId = null;
+
+function abrirExecucao(id) {
+  const plano = state.planos.find(p => p.id === id);
+  if (!plano) return;
+  
+  currentExecPlanoId = id;
+  document.getElementById('exec-plano-nome').textContent = plano.nome;
+  document.getElementById('exec-plano-dias').textContent = plano.dias.length > 0 ? plano.dias.join(', ') : 'Dias não definidos';
+
+  const list = document.getElementById('exec-exercicios-list');
+  if (plano.exercicios.length === 0) {
+    list.innerHTML = '<p class="empty-msg">Nenhum exercício cadastrado neste plano.</p>';
+  } else {
+    list.innerHTML = plano.exercicios.map((ex, i) => `
+      <div class="card" style="padding: 24px; border-left: 4px solid var(--accent); background: var(--bg3);">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
+          <div>
+            <h3 style="font-family:var(--font-display); font-size:28px; color:var(--text); line-height: 1.1;">${escHtml(ex.nome)}</h3>
+            <span class="dia-tag" style="background:var(--bg); color:var(--text2); margin-top:4px; display:inline-block;">${ex.grupo || 'Geral'}</span>
+          </div>
+          <button class="btn-primary" style="display:flex; align-items:center; gap:8px; font-size:16px;" onclick="startTimer(${ex.descanso})">
+            ⏱️ ${ex.descanso}s
+          </button>
+        </div>
+        
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 16px; background: var(--bg2); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+          <div><div style="color:var(--text2); font-size:12px; text-transform:uppercase;">Séries</div><strong style="color:var(--text); font-size:18px;">${ex.series}</strong></div>
+          <div><div style="color:var(--text2); font-size:12px; text-transform:uppercase;">Repetições</div><strong style="color:var(--text); font-size:18px;">${ex.reps || '--'}</strong></div>
+          <div><div style="color:var(--text2); font-size:12px; text-transform:uppercase;">Carga</div><strong style="color:var(--accent); font-size:18px;">${ex.carga ? ex.carga + ' kg' : '--'}</strong></div>
+        </div>
+        
+        ${ex.obs ? `<div style="margin-top:16px; font-size:14px; color:var(--text2); padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px;">ℹ️ <i>${escHtml(ex.obs)}</i></div>` : ''}
+      </div>
+    `).join('');
+  }
+  openModal('modal-executar');
+}
+
+function concluirTreino() {
+  const plano = state.planos.find(p => p.id === currentExecPlanoId);
+  if(!plano) return;
+  
+  // Preenche os dados no modal de registrar treino para facilitar a vida
+  document.getElementById('reg-plano').innerHTML = `<option value="${plano.id}">${plano.nome}</option>`;
+  document.getElementById('reg-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('reg-duracao').value = 60;
+  document.getElementById('reg-obs').value = 'Ótimo treino!';
+  
+  closeModal('modal-executar');
+  openModal('modal-registrar'); // Abre a tela de confirmar direto
+}
+
 // ===== EXERCÍCIOS =====
+document.getElementById('ex-is-piramide').addEventListener('change', renderCargasMultiplas);
+document.getElementById('ex-series').addEventListener('input', renderCargasMultiplas);
+
+function renderCargasMultiplas() {
+  const isPiramide = document.getElementById('ex-is-piramide').checked;
+  const containerUnica = document.getElementById('container-carga-unica');
+  const containerMultipla = document.getElementById('container-carga-multipla');
+  
+  if (isPiramide) {
+    containerUnica.style.display = 'none';
+    containerMultipla.style.display = 'flex';
+    
+    const series = parseInt(document.getElementById('ex-series').value) || 1;
+    // Salva o que já foi digitado para não perder ao alterar o número de séries
+    const currentInputs = Array.from(containerMultipla.querySelectorAll('input')).map(inp => inp.value);
+    
+    containerMultipla.innerHTML = '';
+    for (let i = 0; i < series; i++) {
+      const val = currentInputs[i] !== undefined ? currentInputs[i] : '';
+      containerMultipla.innerHTML += `
+        <div style="flex: 1; min-width: 60px;">
+          <label style="font-size:10px; color:var(--accent);">Série ${i+1}</label>
+          <input type="number" class="ex-carga-multi" step="0.5" min="0" placeholder="kg" value="${val}"/>
+        </div>
+      `;
+    }
+  } else {
+    containerUnica.style.display = 'block';
+    containerMultipla.style.display = 'none';
+  }
+}
+
 document.getElementById('btn-add-exercicio').addEventListener('click', () => {
   state.editingExercicioIdx = null;
   clearExForm();
@@ -407,21 +503,39 @@ function clearExForm() {
   document.getElementById('ex-carga').value = '';
   document.getElementById('ex-descanso').value = 60;
   document.getElementById('ex-obs').value = '';
+  
+  // Reseta a pirâmide
+  document.getElementById('ex-is-piramide').checked = false;
+  renderCargasMultiplas();
 }
 
 document.getElementById('btn-salvar-exercicio').addEventListener('click', () => {
   const nome = document.getElementById('ex-nome').value.trim();
   if (!nome) { alert('Digite o nome do exercício.'); return; }
+  
+  const isPiramide = document.getElementById('ex-is-piramide').checked;
+  let cargaFinal = '';
+  
+  // Se for pirâmide, junta as cargas com barra (ex: 20/22.5/25)
+  if (isPiramide) {
+    const inputs = document.querySelectorAll('.ex-carga-multi');
+    cargaFinal = Array.from(inputs).map(inp => inp.value || '0').join('/');
+  } else {
+    cargaFinal = document.getElementById('ex-carga').value;
+  }
+
   const ex = {
     id: uid(),
     nome,
     grupo: document.getElementById('ex-grupo').value,
     series: document.getElementById('ex-series').value,
     reps: document.getElementById('ex-reps').value,
-    carga: document.getElementById('ex-carga').value,
+    carga: cargaFinal,
+    isPiramide: isPiramide,
     descanso: document.getElementById('ex-descanso').value,
     obs: document.getElementById('ex-obs').value,
   };
+  
   if (state.editingExercicioIdx !== null) {
     state.tempExercicios[state.editingExercicioIdx] = ex;
   } else {
@@ -454,9 +568,23 @@ function editarExercicio(idx) {
   document.getElementById('ex-grupo').value = ex.grupo;
   document.getElementById('ex-series').value = ex.series;
   document.getElementById('ex-reps').value = ex.reps;
-  document.getElementById('ex-carga').value = ex.carga;
   document.getElementById('ex-descanso').value = ex.descanso;
   document.getElementById('ex-obs').value = ex.obs;
+  
+  // Restaura a interface da pirâmide
+  document.getElementById('ex-is-piramide').checked = ex.isPiramide || false;
+  renderCargasMultiplas();
+
+  if (ex.isPiramide) {
+    const inputs = document.querySelectorAll('.ex-carga-multi');
+    const valores = (ex.carga || '').split('/');
+    inputs.forEach((inp, i) => {
+      inp.value = valores[i] !== undefined ? valores[i] : '';
+    });
+  } else {
+    document.getElementById('ex-carga').value = ex.carga;
+  }
+  
   document.getElementById('modal-ex-title').textContent = 'Editar Exercício';
   document.getElementById('btn-salvar-exercicio').textContent = 'Salvar';
   openModal('modal-exercicio');

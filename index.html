@@ -214,6 +214,7 @@
           <option>Bíceps</option><option>Tríceps</option><option>Pernas</option>
           <option>Glúteos</option><option>Abdômen</option><option>Cardio</option><option>Outro</option>
         </select>
+        
         <div class="row-3">
           <div>
             <label>Séries</label>
@@ -221,13 +222,24 @@
           </div>
           <div>
             <label>Reps</label>
-            <input type="text" id="ex-reps" placeholder="12"/>
+            <input type="text" id="ex-reps" placeholder="Ex: 12 ou 12-10-8"/>
           </div>
-          <div>
+          <div id="container-carga-unica">
             <label>Carga (kg)</label>
             <input type="number" id="ex-carga" min="0" step="0.5" placeholder="0"/>
           </div>
         </div>
+        
+        <div style="margin-top: 8px; margin-bottom: 12px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; text-transform:none; font-weight:normal; font-size:13px;">
+            <input type="checkbox" id="ex-is-piramide" style="width:auto; margin:0; accent-color: var(--accent);"/>
+            Cargas diferentes por série (Pirâmide)
+          </label>
+        </div>
+        
+        <div id="container-carga-multipla" style="display:none; gap:8px; margin-bottom: 12px; flex-wrap:wrap;">
+          </div>
+
         <label>Descanso (seg)</label>
         <input type="number" id="ex-descanso" min="0" step="15" value="60"/>
         <label>Observações</label>
@@ -392,6 +404,26 @@
       <div class="modal-footer">
         <button class="btn-ghost" data-close="modal-confirm">Cancelar</button>
         <button class="btn-danger" id="btn-confirm-delete">Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-executar">
+    <div class="modal" style="max-width: 700px; height: 90vh;">
+      <div class="modal-header">
+        <div>
+          <h2 id="exec-plano-nome" style="font-size: 32px;">Nome do Treino</h2>
+          <p id="exec-plano-dias" style="color:var(--text2); font-size: 14px;"></p>
+        </div>
+        <button class="modal-close" data-close="modal-executar">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 24px;">
+        <div id="exec-exercicios-list" style="display: flex; flex-direction: column; gap: 16px;">
+          </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" data-close="modal-executar">Fechar</button>
+        <button class="btn-primary" onclick="concluirTreino()">✓ Concluir Treino</button>
       </div>
     </div>
   </div>
