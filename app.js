@@ -1,0 +1,536 @@
+// ===== STATE =====
+const state = {
+  planos: [],
+  historico: [],
+  dieta: { meta: { cal: 0, prot: 0, carb: 0, gord: 0 }, refeicoes: [] },
+  editingPlanoId: null,
+  editingRefeicaoId: null,
+  tempExercicios: [],   // exercises being added in modal
+  tempAlimentos: [],    // foods being added in modal
+  editingExercicioIdx: null,
+  confirmCallback: null,
+};
+
+// ===== PERSISTENCE =====
+function save() {
+  localStorage.setItem('fitcore_planos', JSON.stringify(state.planos));
+  localStorage.setItem('fitcore_historico', JSON.stringify(state.historico));
+  localStorage.setItem('fitcore_dieta', JSON.stringify(state.dieta));
+}
+function load() {
+  try {
+    state.planos = JSON.parse(localStorage.getItem('fitcore_planos')) || [];
+    state.historico = JSON.parse(localStorage.getItem('fitcore_historico')) || [];
+    state.dieta = JSON.parse(localStorage.getItem('fitcore_dieta')) || { meta: { cal: 0, prot: 0, carb: 0, gord: 0 }, refeicoes: [] };
+  } catch { /* ignore */ }
+}
+
+// ===== ID GENERATOR =====
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+// ===== NAVIGATION =====
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ===== MODAL HELPERS =====
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('[data-close]').forEach(btn => {
+  btn.addEventListener('click', () => closeModal(btn.dataset.close));
+});
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) closeModal(overlay.id);
+  });
+});
+
+// ===== CONFIRM DIALOG =====
+function showConfirm(msg, cb) {
+  document.getElementById('confirm-msg').textContent = msg;
+  state.confirmCallback = cb;
+  openModal('modal-confirm');
+}
+document.getElementById('btn-confirm-delete').addEventListener('click', () => {
+  if (state.confirmCallback) state.confirmCallback();
+  state.confirmCallback = null;
+  closeModal('modal-confirm');
+});
+
+// ===== DASHBOARD =====
+function updateDashboard() {
+  const hoje = new Date();
+  document.getElementById('dashboard-date').textContent =
+    hoje.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  // Stats
+  const mesAtual = hoje.getMonth();
+  const anoAtual = hoje.getFullYear();
+  const treinosMes = state.historico.filter(h => {
+    const d = new Date(h.data + 'T12:00:00');
+    return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
+  }).length;
+
+  document.getElementById('stat-treinos').textContent = treinosMes;
+  document.getElementById('stat-exercicios').textContent =
+    state.planos.reduce((acc, p) => acc + p.exercicios.length, 0);
+  document.getElementById('stat-planos').textContent = state.planos.length;
+  document.getElementById('stat-refeicoes').textContent = state.dieta.refeicoes.length;
+
+  // Próximos treinos
+  const diasSemana = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const diaHoje = diasSemana[hoje.getDay()];
+  const ul = document.getElementById('proximos-treinos');
+  const planosHoje = state.planos.filter(p => p.dias.includes(diaHoje));
+  if (planosHoje.length === 0 || state.planos.length === 0) {
+    ul.innerHTML = '<li class="empty-msg">Nenhum treino para hoje.</li>';
+  } else {
+    ul.innerHTML = planosHoje.map(p =>
+      `<li><span>${p.nome}</span><span class="dia-tag">${diaHoje}</span></li>`
+    ).join('');
+  }
+
+  // Histórico recente
+  const ulH = document.getElementById('historico-recente');
+  const recentes = [...state.historico].reverse().slice(0, 4);
+  if (recentes.length === 0) {
+    ulH.innerHTML = '<li class="empty-msg">Nenhum treino registrado.</li>';
+  } else {
+    ulH.innerHTML = recentes.map(h =>
+      `<li><span>${h.planoNome}</span><span style="color:var(--text2);font-size:12px">${formatDate(h.data)}</span></li>`
+    ).join('');
+  }
+}
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+
+// ===== REGISTRAR TREINO =====
+document.getElementById('btn-registrar-treino').addEventListener('click', () => {
+  openRegistrarModal();
+});
+function openRegistrarModal() {
+  const sel = document.getElementById('reg-plano');
+  sel.innerHTML = state.planos.length === 0
+    ? '<option>Nenhum plano criado</option>'
+    : state.planos.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+  document.getElementById('reg-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('reg-duracao').value = 60;
+  document.getElementById('reg-obs').value = '';
+  openModal('modal-registrar');
+}
+document.getElementById('btn-confirmar-registro').addEventListener('click', () => {
+  const planoId = document.getElementById('reg-plano').value;
+  const plano = state.planos.find(p => p.id === planoId);
+  if (!plano) return;
+  const registro = {
+    id: uid(),
+    planoId,
+    planoNome: plano.nome,
+    data: document.getElementById('reg-data').value,
+    duracao: document.getElementById('reg-duracao').value,
+    obs: document.getElementById('reg-obs').value,
+  };
+  state.historico.push(registro);
+  save();
+  closeModal('modal-registrar');
+  renderHistorico();
+  updateDashboard();
+});
+
+// ===== PLANOS =====
+document.getElementById('btn-novo-plano').addEventListener('click', () => {
+  state.editingPlanoId = null;
+  state.tempExercicios = [];
+  document.getElementById('plano-nome').value = '';
+  document.getElementById('modal-plano-title').textContent = 'Novo Plano de Treino';
+  document.querySelectorAll('.dia-btn').forEach(b => b.classList.remove('selected'));
+  renderExerciciosEdit();
+  openModal('modal-plano');
+});
+
+document.getElementById('btn-salvar-plano').addEventListener('click', () => {
+  const nome = document.getElementById('plano-nome').value.trim();
+  if (!nome) { alert('Digite um nome para o plano.'); return; }
+  const dias = [...document.querySelectorAll('.dia-btn.selected')].map(b => b.dataset.dia);
+
+  if (state.editingPlanoId) {
+    const idx = state.planos.findIndex(p => p.id === state.editingPlanoId);
+    if (idx !== -1) {
+      state.planos[idx].nome = nome;
+      state.planos[idx].dias = dias;
+      state.planos[idx].exercicios = [...state.tempExercicios];
+    }
+  } else {
+    state.planos.push({ id: uid(), nome, dias, exercicios: [...state.tempExercicios] });
+  }
+  save();
+  closeModal('modal-plano');
+  renderPlanos();
+  updateDashboard();
+});
+
+document.querySelectorAll('.dia-btn').forEach(btn => {
+  btn.addEventListener('click', () => btn.classList.toggle('selected'));
+});
+
+function renderPlanos() {
+  const grid = document.getElementById('planos-grid');
+  if (state.planos.length === 0) {
+    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">💪</div><p>Nenhum plano criado ainda.<br>Clique em <b>+ Novo Plano</b> para começar.</p></div>`;
+    return;
+  }
+  grid.innerHTML = state.planos.map(p => `
+    <div class="plano-card">
+      <div class="plano-nome">${escHtml(p.nome)}</div>
+      <div class="plano-dias">${p.dias.map(d => `<span class="dia-tag">${d}</span>`).join('') || '<span style="color:var(--text3);font-size:12px">Nenhum dia definido</span>'}</div>
+      <div class="plano-exercicios-count">${p.exercicios.length} exercício${p.exercicios.length !== 1 ? 's' : ''}</div>
+      ${p.exercicios.length > 0 ? `
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${p.exercicios.slice(0,3).map(ex => `
+            <div class="exercicio-item">
+              <div>
+                <div class="exercicio-nome">${escHtml(ex.nome)}</div>
+                <div class="exercicio-info">${ex.series}x${ex.reps} ${ex.carga ? '— ' + ex.carga + 'kg' : ''}</div>
+              </div>
+              <span class="exercicio-grupo">${ex.grupo || '—'}</span>
+            </div>
+          `).join('')}
+          ${p.exercicios.length > 3 ? `<div style="color:var(--text3);font-size:12px;text-align:center">+${p.exercicios.length - 3} mais</div>` : ''}
+        </div>
+      ` : ''}
+      <div class="plano-actions">
+        <button class="btn-ghost" onclick="editarPlano('${p.id}')">✏️ Editar</button>
+        <button class="btn-ghost" onclick="excluirPlano('${p.id}')">🗑️ Excluir</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function editarPlano(id) {
+  const plano = state.planos.find(p => p.id === id);
+  if (!plano) return;
+  state.editingPlanoId = id;
+  state.tempExercicios = [...plano.exercicios.map(e => ({...e}))];
+  document.getElementById('plano-nome').value = plano.nome;
+  document.getElementById('modal-plano-title').textContent = 'Editar Plano';
+  document.querySelectorAll('.dia-btn').forEach(b => {
+    b.classList.toggle('selected', plano.dias.includes(b.dataset.dia));
+  });
+  renderExerciciosEdit();
+  openModal('modal-plano');
+}
+
+function excluirPlano(id) {
+  showConfirm('Excluir este plano de treino?', () => {
+    state.planos = state.planos.filter(p => p.id !== id);
+    save();
+    renderPlanos();
+    updateDashboard();
+  });
+}
+
+// ===== EXERCÍCIOS =====
+document.getElementById('btn-add-exercicio').addEventListener('click', () => {
+  state.editingExercicioIdx = null;
+  clearExForm();
+  document.getElementById('modal-ex-title').textContent = 'Adicionar Exercício';
+  document.getElementById('btn-salvar-exercicio').textContent = 'Adicionar';
+  openModal('modal-exercicio');
+});
+
+function clearExForm() {
+  document.getElementById('ex-nome').value = '';
+  document.getElementById('ex-grupo').value = '';
+  document.getElementById('ex-series').value = 3;
+  document.getElementById('ex-reps').value = '';
+  document.getElementById('ex-carga').value = '';
+  document.getElementById('ex-descanso').value = 60;
+  document.getElementById('ex-obs').value = '';
+}
+
+document.getElementById('btn-salvar-exercicio').addEventListener('click', () => {
+  const nome = document.getElementById('ex-nome').value.trim();
+  if (!nome) { alert('Digite o nome do exercício.'); return; }
+  const ex = {
+    id: uid(),
+    nome,
+    grupo: document.getElementById('ex-grupo').value,
+    series: document.getElementById('ex-series').value,
+    reps: document.getElementById('ex-reps').value,
+    carga: document.getElementById('ex-carga').value,
+    descanso: document.getElementById('ex-descanso').value,
+    obs: document.getElementById('ex-obs').value,
+  };
+  if (state.editingExercicioIdx !== null) {
+    state.tempExercicios[state.editingExercicioIdx] = ex;
+  } else {
+    state.tempExercicios.push(ex);
+  }
+  closeModal('modal-exercicio');
+  renderExerciciosEdit();
+});
+
+function renderExerciciosEdit() {
+  const list = document.getElementById('exercicios-list-edit');
+  if (state.tempExercicios.length === 0) {
+    list.innerHTML = '<div style="color:var(--text3);font-size:13px">Nenhum exercício adicionado.</div>';
+    return;
+  }
+  list.innerHTML = state.tempExercicios.map((ex, i) => `
+    <div class="ex-edit-item">
+      <div class="ex-name">${escHtml(ex.nome)}</div>
+      <div class="ex-meta">${ex.series}x${ex.reps} ${ex.carga ? '· ' + ex.carga + 'kg' : ''} ${ex.grupo ? '· ' + ex.grupo : ''}</div>
+      <button class="ex-edit-btn" title="Editar" onclick="editarExercicio(${i})">✏️</button>
+      <button class="ex-edit-btn" title="Remover" onclick="removerExercicio(${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+function editarExercicio(idx) {
+  const ex = state.tempExercicios[idx];
+  state.editingExercicioIdx = idx;
+  document.getElementById('ex-nome').value = ex.nome;
+  document.getElementById('ex-grupo').value = ex.grupo;
+  document.getElementById('ex-series').value = ex.series;
+  document.getElementById('ex-reps').value = ex.reps;
+  document.getElementById('ex-carga').value = ex.carga;
+  document.getElementById('ex-descanso').value = ex.descanso;
+  document.getElementById('ex-obs').value = ex.obs;
+  document.getElementById('modal-ex-title').textContent = 'Editar Exercício';
+  document.getElementById('btn-salvar-exercicio').textContent = 'Salvar';
+  openModal('modal-exercicio');
+}
+
+function removerExercicio(idx) {
+  state.tempExercicios.splice(idx, 1);
+  renderExerciciosEdit();
+}
+
+// ===== DIETA =====
+document.getElementById('btn-nova-refeicao').addEventListener('click', () => {
+  state.editingRefeicaoId = null;
+  state.tempAlimentos = [];
+  document.getElementById('ref-nome').value = '';
+  document.getElementById('ref-horario').value = '08:00';
+  document.getElementById('modal-ref-title').textContent = 'Nova Refeição';
+  renderAlimentosEdit();
+  openModal('modal-refeicao');
+});
+
+document.getElementById('btn-salvar-refeicao').addEventListener('click', () => {
+  const nome = document.getElementById('ref-nome').value.trim();
+  if (!nome) { alert('Digite um nome para a refeição.'); return; }
+  const ref = {
+    id: state.editingRefeicaoId || uid(),
+    nome,
+    horario: document.getElementById('ref-horario').value,
+    alimentos: [...state.tempAlimentos],
+  };
+  if (state.editingRefeicaoId) {
+    const idx = state.dieta.refeicoes.findIndex(r => r.id === state.editingRefeicaoId);
+    if (idx !== -1) state.dieta.refeicoes[idx] = ref;
+  } else {
+    state.dieta.refeicoes.push(ref);
+  }
+  save();
+  closeModal('modal-refeicao');
+  renderDieta();
+  updateDashboard();
+});
+
+document.getElementById('btn-add-alimento').addEventListener('click', () => {
+  state.tempAlimentos.push({ id: uid(), nome: '', qtd: '', cal: '', prot: '', carb: '' });
+  renderAlimentosEdit();
+});
+
+function renderAlimentosEdit() {
+  const list = document.getElementById('alimentos-list');
+  if (state.tempAlimentos.length === 0) {
+    list.innerHTML = '<div style="color:var(--text3);font-size:13px">Nenhum alimento adicionado.</div>';
+    return;
+  }
+  list.innerHTML = state.tempAlimentos.map((al, i) => `
+    <div class="alimento-edit-item">
+      <input type="text" placeholder="Alimento" value="${escHtml(al.nome)}" oninput="updateAlimento(${i},'nome',this.value)"/>
+      <input type="text" placeholder="Qtd (g/ml)" value="${al.qtd}" oninput="updateAlimento(${i},'qtd',this.value)"/>
+      <input type="number" placeholder="kcal" value="${al.cal}" oninput="updateAlimento(${i},'cal',this.value)" min="0"/>
+      <input type="number" placeholder="Prot(g)" value="${al.prot}" oninput="updateAlimento(${i},'prot',this.value)" min="0"/>
+      <input type="number" placeholder="Carb(g)" value="${al.carb}" oninput="updateAlimento(${i},'carb',this.value)" min="0"/>
+      <button class="al-remove" onclick="removerAlimento(${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+function updateAlimento(idx, field, value) {
+  state.tempAlimentos[idx][field] = value;
+}
+function removerAlimento(idx) {
+  state.tempAlimentos.splice(idx, 1);
+  renderAlimentosEdit();
+}
+
+function editarRefeicao(id) {
+  const ref = state.dieta.refeicoes.find(r => r.id === id);
+  if (!ref) return;
+  state.editingRefeicaoId = id;
+  state.tempAlimentos = ref.alimentos.map(a => ({...a}));
+  document.getElementById('ref-nome').value = ref.nome;
+  document.getElementById('ref-horario').value = ref.horario;
+  document.getElementById('modal-ref-title').textContent = 'Editar Refeição';
+  renderAlimentosEdit();
+  openModal('modal-refeicao');
+}
+function excluirRefeicao(id) {
+  showConfirm('Excluir esta refeição?', () => {
+    state.dieta.refeicoes = state.dieta.refeicoes.filter(r => r.id !== id);
+    save();
+    renderDieta();
+    updateDashboard();
+  });
+}
+
+function renderDieta() {
+  const meta = state.dieta.meta;
+  document.getElementById('meta-cal-display').textContent =
+    meta.cal ? `${meta.cal} kcal` : '— kcal';
+
+  const lista = document.getElementById('refeicoes-lista');
+  if (state.dieta.refeicoes.length === 0) {
+    lista.innerHTML = `<div class="empty-state"><div class="empty-icon">🥗</div><p>Nenhuma refeição cadastrada.<br>Clique em <b>+ Nova Refeição</b> para começar.</p></div>`;
+    return;
+  }
+
+  const sorted = [...state.dieta.refeicoes].sort((a, b) => a.horario.localeCompare(b.horario));
+  lista.innerHTML = sorted.map(ref => {
+    const totalCal = ref.alimentos.reduce((s, a) => s + (parseFloat(a.cal) || 0), 0);
+    const totalProt = ref.alimentos.reduce((s, a) => s + (parseFloat(a.prot) || 0), 0);
+    const totalCarb = ref.alimentos.reduce((s, a) => s + (parseFloat(a.carb) || 0), 0);
+    return `
+      <div class="refeicao-card">
+        <div class="refeicao-header" onclick="toggleRefeicao('${ref.id}')">
+          <div style="display:flex;align-items:center;gap:14px">
+            <span class="refeicao-horario">${ref.horario}</span>
+            <span class="refeicao-nome">${escHtml(ref.nome)}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px">
+            ${totalCal > 0 ? `<span class="refeicao-cals">${totalCal.toFixed(0)} kcal</span>` : ''}
+            <span style="color:var(--text3)">▾</span>
+          </div>
+        </div>
+        <div class="refeicao-body" id="rb-${ref.id}" style="display:none">
+          ${ref.alimentos.length > 0 ? `
+            <div class="alimento-row" style="margin-bottom:4px">
+              <span class="label">Alimento</span>
+              <span class="label">Qtd</span>
+              <span class="label">kcal</span>
+              <span class="label">Prot</span>
+              <span></span>
+            </div>
+            ${ref.alimentos.map(al => `
+              <div class="alimento-row">
+                <span>${escHtml(al.nome) || '—'}</span>
+                <span style="color:var(--text2)">${al.qtd || '—'}</span>
+                <span style="color:var(--accent)">${al.cal || '0'}</span>
+                <span style="color:var(--text2)">${al.prot || '0'}g</span>
+                <span></span>
+              </div>
+            `).join('')}
+            <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;gap:20px;font-size:13px;color:var(--text2)">
+              <span>Total: <b style="color:var(--accent)">${totalCal.toFixed(0)} kcal</b></span>
+              <span>Prot: <b>${totalProt.toFixed(1)}g</b></span>
+              <span>Carb: <b>${totalCarb.toFixed(1)}g</b></span>
+            </div>
+          ` : '<div style="color:var(--text3);font-size:13px">Nenhum alimento cadastrado.</div>'}
+        </div>
+        <div class="refeicao-actions">
+          <button class="btn-ghost" onclick="editarRefeicao('${ref.id}')">✏️ Editar</button>
+          <button class="btn-ghost" onclick="excluirRefeicao('${ref.id}')">🗑️ Excluir</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleRefeicao(id) {
+  const body = document.getElementById('rb-' + id);
+  if (body) body.style.display = body.style.display === 'none' ? 'flex' : 'none';
+}
+
+// ===== META CALÓRICA =====
+document.getElementById('btn-editar-meta').addEventListener('click', () => {
+  const m = state.dieta.meta;
+  document.getElementById('meta-cal-input').value = m.cal || '';
+  document.getElementById('meta-prot-input').value = m.prot || '';
+  document.getElementById('meta-carb-input').value = m.carb || '';
+  document.getElementById('meta-gord-input').value = m.gord || '';
+  openModal('modal-meta');
+});
+document.getElementById('btn-salvar-meta').addEventListener('click', () => {
+  state.dieta.meta = {
+    cal: parseFloat(document.getElementById('meta-cal-input').value) || 0,
+    prot: parseFloat(document.getElementById('meta-prot-input').value) || 0,
+    carb: parseFloat(document.getElementById('meta-carb-input').value) || 0,
+    gord: parseFloat(document.getElementById('meta-gord-input').value) || 0,
+  };
+  save();
+  closeModal('modal-meta');
+  renderDieta();
+});
+
+// ===== HISTÓRICO =====
+function renderHistorico() {
+  const lista = document.getElementById('historico-lista');
+  if (state.historico.length === 0) {
+    lista.innerHTML = `<div class="empty-state"><div class="empty-icon">📅</div><p>Nenhum treino registrado ainda.</p></div>`;
+    return;
+  }
+  const sorted = [...state.historico].reverse();
+  lista.innerHTML = sorted.map(h => `
+    <div class="historico-item">
+      <div class="hist-info">
+        <div class="hist-plano">${escHtml(h.planoNome)}</div>
+        <div class="hist-data">${formatFullDate(h.data)}</div>
+        ${h.obs ? `<div class="hist-obs">"${escHtml(h.obs)}"</div>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="hist-dur">⏱ ${h.duracao} min</div>
+        <button class="hist-del" onclick="excluirHistorico('${h.id}')" title="Excluir">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function excluirHistorico(id) {
+  showConfirm('Remover este registro do histórico?', () => {
+    state.historico = state.historico.filter(h => h.id !== id);
+    save();
+    renderHistorico();
+    updateDashboard();
+  });
+}
+
+function formatFullDate(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+// ===== UTILS =====
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ===== INIT =====
+load();
+updateDashboard();
+renderPlanos();
+renderDieta();
+renderHistorico();

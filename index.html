@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FitCore — Treino & Dieta</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+  <!-- SIDEBAR NAV -->
+  <nav class="sidebar">
+    <div class="logo">LP</div>
+    <button class="nav-btn active" data-tab="dashboard" title="Dashboard">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    </button>
+    <button class="nav-btn" data-tab="treinos" title="Treinos">
+      <svg viewBox="0 0 24 24"><path d="M6.5 6.5h11M6.5 12h11M6.5 17.5h11" stroke-linecap="round"/><circle cx="3.5" cy="6.5" r="1.5"/><circle cx="3.5" cy="12" r="1.5"/><circle cx="3.5" cy="17.5" r="1.5"/></svg>
+    </button>
+    <button class="nav-btn" data-tab="dieta" title="Dieta">
+      <svg viewBox="0 0 24 24"><path d="M12 2C9 2 6 5 6 9c0 3 2 5.5 4.5 6.5V20h3v-4.5C16 14.5 18 12 18 9c0-4-3-7-6-7z" stroke-linecap="round"/></svg>
+    </button>
+    <button class="nav-btn" data-tab="historico" title="Histórico">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg>
+    </button>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <section class="tab-content active" id="tab-dashboard">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Dashboard</h1>
+          <p class="page-sub" id="dashboard-date"></p>
+        </div>
+        <button class="btn-primary" id="btn-registrar-treino">+ Registrar Treino</button>
+      </div>
+
+      <div class="cards-row">
+        <div class="stat-card accent">
+          <span class="stat-label">Treinos esse mês</span>
+          <span class="stat-value" id="stat-treinos">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Exercícios cadastrados</span>
+          <span class="stat-value" id="stat-exercicios">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Planos de treino</span>
+          <span class="stat-value" id="stat-planos">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Refeições na dieta</span>
+          <span class="stat-value" id="stat-refeicoes">0</span>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <h2 class="card-title">Próximos treinos</h2>
+          <ul class="list-simple" id="proximos-treinos">
+            <li class="empty-msg">Nenhum plano criado ainda.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h2 class="card-title">Histórico recente</h2>
+          <ul class="list-simple" id="historico-recente">
+            <li class="empty-msg">Nenhum treino registrado.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- TREINOS -->
+    <section class="tab-content" id="tab-treinos">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Meus Treinos</h1>
+          <p class="page-sub">Crie e gerencie seus planos</p>
+        </div>
+        <button class="btn-primary" id="btn-novo-plano">+ Novo Plano</button>
+      </div>
+
+      <div class="planos-grid" id="planos-grid">
+        <div class="empty-state">
+          <div class="empty-icon">💪</div>
+          <p>Nenhum plano criado ainda.<br>Clique em <b>+ Novo Plano</b> para começar.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- DIETA -->
+    <section class="tab-content" id="tab-dieta">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Dieta</h1>
+          <p class="page-sub">Planeje sua alimentação</p>
+        </div>
+        <button class="btn-primary" id="btn-nova-refeicao">+ Nova Refeição</button>
+      </div>
+
+      <div class="meta-calorica">
+        <div class="meta-info">
+          <span>Meta calórica diária:</span>
+          <span class="meta-valor" id="meta-cal-display">— kcal</span>
+        </div>
+        <button class="btn-ghost" id="btn-editar-meta">Editar meta</button>
+      </div>
+
+      <div class="refeicoes-lista" id="refeicoes-lista">
+        <div class="empty-state">
+          <div class="empty-icon">🥗</div>
+          <p>Nenhuma refeição cadastrada.<br>Clique em <b>+ Nova Refeição</b> para começar.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- HISTÓRICO -->
+    <section class="tab-content" id="tab-historico">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Histórico</h1>
+          <p class="page-sub">Seus treinos realizados</p>
+        </div>
+      </div>
+      <div class="historico-lista" id="historico-lista">
+        <div class="empty-state">
+          <div class="empty-icon">📅</div>
+          <p>Nenhum treino registrado ainda.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== MODALS ===== -->
+
+  <!-- Modal Novo Plano -->
+  <div class="modal-overlay" id="modal-plano">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-plano-title">Novo Plano de Treino</h2>
+        <button class="modal-close" data-close="modal-plano">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>Nome do plano</label>
+        <input type="text" id="plano-nome" placeholder="Ex: Treino A - Peito e Tríceps"/>
+        <label>Dias da semana</label>
+        <div class="dias-selector" id="dias-selector">
+          <button class="dia-btn" data-dia="Seg">Seg</button>
+          <button class="dia-btn" data-dia="Ter">Ter</button>
+          <button class="dia-btn" data-dia="Qua">Qua</button>
+          <button class="dia-btn" data-dia="Qui">Qui</button>
+          <button class="dia-btn" data-dia="Sex">Sex</button>
+          <button class="dia-btn" data-dia="Sáb">Sáb</button>
+          <button class="dia-btn" data-dia="Dom">Dom</button>
+        </div>
+        <label>Exercícios</label>
+        <div class="exercicios-list-edit" id="exercicios-list-edit"></div>
+        <button class="btn-ghost full-width" id="btn-add-exercicio">+ Adicionar exercício</button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" data-close="modal-plano">Cancelar</button>
+        <button class="btn-primary" id="btn-salvar-plano">Salvar Plano</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Exercício -->
+  <div class="modal-overlay" id="modal-exercicio">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 id="modal-ex-title">Adicionar Exercício</h2>
+        <button class="modal-close" data-close="modal-exercicio">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>Nome do exercício</label>
+        <input type="text" id="ex-nome" placeholder="Ex: Supino Reto"/>
+        <label>Grupo muscular</label>
+        <select id="ex-grupo">
+          <option value="">Selecione...</option>
+          <option>Peito</option><option>Costas</option><option>Ombros</option>
+          <option>Bíceps</option><option>Tríceps</option><option>Pernas</option>
+          <option>Glúteos</option><option>Abdômen</option><option>Cardio</option><option>Outro</option>
+        </select>
+        <div class="row-3">
+          <div>
+            <label>Séries</label>
+            <input type="number" id="ex-series" min="1" value="3"/>
+          </div>
+          <div>
+            <label>Reps</label>
+            <input type="text" id="ex-reps" placeholder="12"/>
+          </div>
+          <div>
+            <label>Carga (kg)</label>
+            <input type="number" id="ex-carga" min="0" step="0.5" placeholder="0"/>
+          </div>
+        </div>
+        <label>Descanso (seg)</label>
+        <input type="number" id="ex-descanso" min="0" step="15" value="60"/>
+        <label>Observações</label>
+        <textarea id="ex-obs" rows="2" placeholder="Ex: Pegada fechada, contrair no topo..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" data-close="modal-exercicio">Cancelar</button>
+        <button class="btn-primary" id="btn-salvar-exercicio">Adicionar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Refeição -->
+  <div class="modal-overlay" id="modal-refeicao">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-ref-title">Nova Refeição</h2>
+        <button class="modal-close" data-close="modal-refeicao">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>Nome da refeição</label>
+        <input type="text" id="ref-nome" placeholder="Ex: Café da manhã"/>
+        <label>Horário</label>
+        <input type="time" id="ref-horario" value="08:00"/>
+        <label>Alimentos / Itens</label>
+        <div class="alimentos-list" id="alimentos-list"></div>
+        <button class="btn-ghost full-width" id="btn-add-alimento">+ Adicionar alimento</button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" data-close="modal-refeicao">Cancelar</button>
+        <button class="btn-primary" id="btn-salvar-refeicao">Salvar Refeição</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Meta Calórica -->
+  <div class="modal-overlay" id="modal-meta">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>Meta Calórica</h2>
+        <button class="modal-close" data-close="modal-meta">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>Calorias diárias (kcal)</label>
+        <input type="number" id="meta-cal-input" min="500" max="10000" step="50" placeholder="2000"/>
+        <label>Proteína (g)</label>
+        <input type="number" id="meta-prot-input" min="0" placeholder="150"/>
+        <label>Carboidratos (g)</label>
+        <input type="number" id="meta-carb-input" min="0" placeholder="250"/>
+        <label>Gordura (g)</label>
+        <input type="number" id="meta-gord-input" min="0" placeholder="70"/>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" data-close="modal-meta">Cancelar</button>
+        <button class="btn-primary" id="btn-salvar-meta">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Registrar Treino -->
+  <div class="modal-overlay" id="modal-registrar">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>Registrar Treino Realizado</h2>
+        <button class="modal-close" data-close="modal-registrar">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>Plano realizado</label>
+        <select id="reg-plano"></select>
+        <label>Data</label>
+        <input type="date" id="reg-data"/>
+        <label>Duração (min)</label>
+        <input type="number" id="reg-duracao" min="1" value="60"/>
+        <label>Observações</label>
+        <textarea id="reg-obs" rows="2" placeholder="Como foi o treino?"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" data-close="modal-registrar">Cancelar</button>
+        <button class="btn-primary" id="btn-confirmar-registro">Registrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Delete -->
+  <div class="modal-overlay" id="modal-confirm">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>Confirmar exclusão</h2>
+        <button class="modal-close" data-close="modal-confirm">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirm-msg">Tem certeza que deseja excluir este item?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" data-close="modal-confirm">Cancelar</button>
+        <button class="btn-danger" id="btn-confirm-delete">Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
