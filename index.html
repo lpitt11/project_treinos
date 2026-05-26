@@ -15,7 +15,10 @@
     <button class="nav-btn active" data-tab="dashboard" title="Dashboard">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
     </button>
-    <button class="nav-btn" data-tab="treinos" title="Treinos">
+    <button class="nav-btn" data-tab="executar" title="Treinar Agora">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+    <button class="nav-btn" data-tab="treinos" title="Gerenciar Treinos">
       <svg viewBox="0 0 24 24"><path d="M6.5 6.5h11M6.5 12h11M6.5 17.5h11" stroke-linecap="round"/><circle cx="3.5" cy="6.5" r="1.5"/><circle cx="3.5" cy="12" r="1.5"/><circle cx="3.5" cy="17.5" r="1.5"/></svg>
     </button>
     <button class="nav-btn" data-tab="dieta" title="Dieta">
@@ -94,11 +97,26 @@
       </div>
     </section>
 
+    <section class="tab-content" id="tab-executar">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Treinar Agora</h1>
+          <p class="page-sub">Escolha seu treino do dia e inicie</p>
+        </div>
+      </div>
+      <div class="planos-grid" id="executar-grid">
+        <div class="empty-state">
+          <div class="empty-icon">🤷</div>
+          <p>Nenhum plano disponível.<br>Crie um plano na aba de Gerenciar Treinos primeiro.</p>
+        </div>
+      </div>
+    </section>
+
     <section class="tab-content" id="tab-treinos">
       <div class="page-header">
         <div>
-          <h1 class="page-title">Meus Treinos</h1>
-          <p class="page-sub">Crie e gerencie seus planos</p>
+          <h1 class="page-title">Gerenciar Treinos</h1>
+          <p class="page-sub">Crie e edite seus planos de treino</p>
         </div>
         <button class="btn-primary" id="btn-novo-plano">+ Novo Plano</button>
       </div>
@@ -408,22 +426,22 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="modal-executar">
-    <div class="modal" style="max-width: 700px; height: 90vh;">
-      <div class="modal-header">
+  <div class="modal-overlay" id="modal-executar" style="padding: 0;">
+    <div class="modal" style="width: 100vw; height: 100vh; max-width: none; max-height: none; border-radius: 0; border: none; margin: 0;">
+      <div class="modal-header" style="padding: 32px 40px;">
         <div>
-          <h2 id="exec-plano-nome" style="font-size: 32px;">Nome do Treino</h2>
-          <p id="exec-plano-dias" style="color:var(--text2); font-size: 14px;"></p>
+          <h2 id="exec-plano-nome" style="font-size: 40px;">Nome do Treino</h2>
+          <p id="exec-plano-dias" style="color:var(--text2); font-size: 16px;"></p>
         </div>
-        <button class="modal-close" data-close="modal-executar">&times;</button>
+        <button class="modal-close" data-close="modal-executar" style="font-size: 36px;">&times;</button>
       </div>
-      <div class="modal-body" style="padding: 24px;">
-        <div id="exec-exercicios-list" style="display: flex; flex-direction: column; gap: 16px;">
+      <div class="modal-body" style="padding: 32px 40px;">
+        <div id="exec-exercicios-list" style="display: flex; flex-direction: column; gap: 24px;">
           </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn-ghost" data-close="modal-executar">Fechar</button>
-        <button class="btn-primary" onclick="concluirTreino()">✓ Concluir Treino</button>
+      <div class="modal-footer" style="padding: 24px 40px;">
+        <button class="btn-ghost" data-close="modal-executar">Cancelar</button>
+        <button class="btn-primary" style="font-size: 18px; padding: 12px 32px;" onclick="concluirTreino()">✓ Concluir Treino</button>
       </div>
     </div>
   </div>

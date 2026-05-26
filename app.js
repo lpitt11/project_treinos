@@ -257,7 +257,6 @@ function closeTimer() {
 }
 
 function playBeep() {
-  // Bipe simples embutido com Web Audio API pra evitar problemas de link
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
@@ -304,7 +303,7 @@ document.getElementById('btn-confirmar-registro').addEventListener('click', () =
   updateDashboard();
 });
 
-// ===== PLANOS =====
+// ===== PLANOS DE TREINO (GERENCIAMENTO) =====
 document.getElementById('btn-novo-plano').addEventListener('click', () => {
   state.editingPlanoId = null;
   state.tempExercicios = [];
@@ -333,6 +332,7 @@ document.getElementById('btn-salvar-plano').addEventListener('click', () => {
   save();
   closeModal('modal-plano');
   renderPlanos();
+  renderExecutar(); // Atualiza a aba de treinar também
   updateDashboard();
 });
 
@@ -359,17 +359,12 @@ function renderPlanos() {
                 <div class="exercicio-nome">${escHtml(ex.nome)}</div>
                 <div class="exercicio-info">${ex.series}x${ex.reps} ${ex.carga ? '— ' + ex.carga + 'kg' : ''}</div>
               </div>
-              <div class="exercicio-acoes-rapidas">
-                <span class="exercicio-grupo">${ex.grupo || '—'}</span>
-                <button class="btn-ghost" style="padding: 2px 6px; font-size:12px; margin-left:4px;" title="Iniciar Descanso (${ex.descanso}s)" onclick="startTimer(${ex.descanso})">⏱️</button>
-              </div>
             </div>
           `).join('')}
           ${p.exercicios.length > 3 ? `<div style="color:var(--text3);font-size:12px;text-align:center">+${p.exercicios.length - 3} mais</div>` : ''}
         </div>
       ` : ''}
       <div class="plano-actions">
-        <button class="btn-primary" onclick="abrirExecucao('${p.id}')">▶ Executar</button>
         <button class="btn-ghost" onclick="editarPlano('${p.id}')">✏️ Editar</button>
         <button class="btn-ghost" onclick="excluirPlano('${p.id}')">🗑️ Excluir</button>
       </div>
@@ -396,12 +391,32 @@ function excluirPlano(id) {
     state.planos = state.planos.filter(p => p.id !== id);
     save();
     renderPlanos();
+    renderExecutar();
     updateDashboard();
   });
 }
 
 // ===== MÓDULO: MODO EXECUÇÃO DE TREINO =====
 let currentExecPlanoId = null;
+
+// Nova função exclusiva para renderizar a aba "Treinar"
+function renderExecutar() {
+  const grid = document.getElementById('executar-grid');
+  if (state.planos.length === 0) {
+    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">🤷</div><p>Nenhum plano disponível.<br>Crie um plano na aba de Gerenciar Treinos primeiro.</p></div>`;
+    return;
+  }
+  grid.innerHTML = state.planos.map(p => `
+    <div class="plano-card hover-card" onclick="abrirExecucao('${p.id}')" style="cursor: pointer; border-color: var(--accent); background: rgba(200,241,53,0.02);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div class="plano-nome" style="font-size: 28px;">${escHtml(p.nome)}</div>
+        <div style="background: var(--accent); color: var(--bg); border-radius: 50%; width: 36px; height: 36px; display:flex; align-items:center; justify-content:center; font-size: 18px;">▶</div>
+      </div>
+      <div class="plano-dias" style="margin-top: 8px;">${p.dias.map(d => `<span class="dia-tag">${d}</span>`).join('') || '<span style="color:var(--text3);font-size:12px">Nenhum dia definido</span>'}</div>
+      <div class="plano-exercicios-count" style="margin-top: 12px;">${p.exercicios.length} exercício${p.exercicios.length !== 1 ? 's' : ''}</div>
+    </div>
+  `).join('');
+}
 
 function abrirExecucao(id) {
   const plano = state.planos.find(p => p.id === id);
@@ -851,6 +866,7 @@ load();
 document.getElementById('input-data-peso').value = new Date().toISOString().split('T')[0];
 updateDashboard();
 renderPlanos();
+renderExecutar(); // Adicionado aqui para carregar junto
 renderDieta();
 renderHistorico();
 renderPesoChart();
