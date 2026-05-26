@@ -53,11 +53,22 @@ function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 document.querySelectorAll('[data-close]').forEach(btn => {
-  btn.addEventListener('click', () => closeModal(btn.dataset.close));
+  btn.addEventListener('click', () => {
+    closeModal(btn.dataset.close);
+    // Limpar o cronômetro do treino se fechar pelo botão "Cancelar" ou "X"
+    if(btn.dataset.close === 'modal-executar' && workoutTimerInterval) {
+      clearInterval(workoutTimerInterval);
+    }
+  });
 });
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
   overlay.addEventListener('click', e => {
-    if (e.target === overlay) closeModal(overlay.id);
+    if (e.target === overlay) {
+      closeModal(overlay.id);
+      if(overlay.id === 'modal-executar' && workoutTimerInterval) {
+        clearInterval(workoutTimerInterval);
+      }
+    }
   });
 });
 
@@ -270,39 +281,6 @@ function playBeep() {
   osc.stop(ctx.currentTime + 1);
 }
 
-// ===== REGISTRAR TREINO =====
-document.getElementById('btn-registrar-treino').addEventListener('click', () => {
-  openRegistrarModal();
-});
-function openRegistrarModal() {
-  const sel = document.getElementById('reg-plano');
-  sel.innerHTML = state.planos.length === 0
-    ? '<option>Nenhum plano criado</option>'
-    : state.planos.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
-  document.getElementById('reg-data').value = new Date().toISOString().split('T')[0];
-  document.getElementById('reg-duracao').value = 60;
-  document.getElementById('reg-obs').value = '';
-  openModal('modal-registrar');
-}
-document.getElementById('btn-confirmar-registro').addEventListener('click', () => {
-  const planoId = document.getElementById('reg-plano').value;
-  const plano = state.planos.find(p => p.id === planoId);
-  if (!plano) return;
-  const registro = {
-    id: uid(),
-    planoId,
-    planoNome: plano.nome,
-    data: document.getElementById('reg-data').value,
-    duracao: document.getElementById('reg-duracao').value,
-    obs: document.getElementById('reg-obs').value,
-  };
-  state.historico.push(registro);
-  save();
-  closeModal('modal-registrar');
-  renderHistorico();
-  updateDashboard();
-});
-
 // ===== PLANOS DE TREINO (GERENCIAMENTO) =====
 document.getElementById('btn-novo-plano').addEventListener('click', () => {
   state.editingPlanoId = null;
@@ -398,8 +376,9 @@ function excluirPlano(id) {
 
 // ===== MÓDULO: MODO EXECUÇÃO DE TREINO =====
 let currentExecPlanoId = null;
+let workoutTimerInterval = null;
+let workoutElapsedSeconds = 0;
 
-// Nova função exclusiva para renderizar a aba "Treinar"
 function renderExecutar() {
   const grid = document.getElementById('executar-grid');
   if (state.planos.length === 0) {
@@ -425,6 +404,14 @@ function abrirExecucao(id) {
   currentExecPlanoId = id;
   document.getElementById('exec-plano-nome').textContent = plano.nome;
   document.getElementById('exec-plano-dias').textContent = plano.dias.length > 0 ? plano.dias.join(', ') : 'Dias não definidos';
+
+  // Reseta o estado dos botões e timer toda vez que abrir um treino novo
+  clearInterval(workoutTimerInterval);
+  workoutElapsedSeconds = 0;
+  document.getElementById('exec-timer-display').textContent = '00:00';
+  document.getElementById('exec-timer-display').style.display = 'none';
+  document.getElementById('btn-iniciar-treino').style.display = 'inline-block';
+  document.getElementById('btn-concluir-treino').style.display = 'none';
 
   const list = document.getElementById('exec-exercicios-list');
   if (plano.exercicios.length === 0) {
@@ -455,18 +442,47 @@ function abrirExecucao(id) {
   openModal('modal-executar');
 }
 
+function iniciarTreino() {
+  // Esconde o "Iniciar" e mostra "Concluir" + Timer
+  document.getElementById('btn-iniciar-treino').style.display = 'none';
+  document.getElementById('btn-concluir-treino').style.display = 'inline-block';
+  document.getElementById('exec-timer-display').style.display = 'block';
+  
+  workoutElapsedSeconds = 0;
+  workoutTimerInterval = setInterval(() => {
+    workoutElapsedSeconds++;
+    const m = Math.floor(workoutElapsedSeconds / 60).toString().padStart(2, '0');
+    const s = (workoutElapsedSeconds % 60).toString().padStart(2, '0');
+    document.getElementById('exec-timer-display').textContent = `${m}:${s}`;
+  }, 1000);
+}
+
 function concluirTreino() {
+  clearInterval(workoutTimerInterval);
+  
   const plano = state.planos.find(p => p.id === currentExecPlanoId);
   if(!plano) return;
   
-  // Preenche os dados no modal de registrar treino para facilitar a vida
-  document.getElementById('reg-plano').innerHTML = `<option value="${plano.id}">${plano.nome}</option>`;
-  document.getElementById('reg-data').value = new Date().toISOString().split('T')[0];
-  document.getElementById('reg-duracao').value = 60;
-  document.getElementById('reg-obs').value = 'Ótimo treino!';
+  // Transforma os segundos gravados em minutos para salvar no histórico
+  // Math.max(1, x) assegura que mesmo se durar 10 segundos apareça como 1 minuto no histórico
+  const minutos = Math.max(1, Math.ceil(workoutElapsedSeconds / 60));
+  
+  // Salva diretamente o registro no histórico sem abrir um segundo modal
+  const registro = {
+    id: uid(),
+    planoId: plano.id,
+    planoNome: plano.nome,
+    data: new Date().toISOString().split('T')[0],
+    duracao: minutos,
+    obs: 'Treino finalizado com sucesso.',
+  };
+  
+  state.historico.push(registro);
+  save();
   
   closeModal('modal-executar');
-  openModal('modal-registrar'); // Abre a tela de confirmar direto
+  renderHistorico();
+  updateDashboard();
 }
 
 // ===== EXERCÍCIOS =====
@@ -483,7 +499,6 @@ function renderCargasMultiplas() {
     containerMultipla.style.display = 'flex';
     
     const series = parseInt(document.getElementById('ex-series').value) || 1;
-    // Salva o que já foi digitado para não perder ao alterar o número de séries
     const currentInputs = Array.from(containerMultipla.querySelectorAll('input')).map(inp => inp.value);
     
     containerMultipla.innerHTML = '';
@@ -519,7 +534,6 @@ function clearExForm() {
   document.getElementById('ex-descanso').value = 60;
   document.getElementById('ex-obs').value = '';
   
-  // Reseta a pirâmide
   document.getElementById('ex-is-piramide').checked = false;
   renderCargasMultiplas();
 }
@@ -531,7 +545,6 @@ document.getElementById('btn-salvar-exercicio').addEventListener('click', () => 
   const isPiramide = document.getElementById('ex-is-piramide').checked;
   let cargaFinal = '';
   
-  // Se for pirâmide, junta as cargas com barra (ex: 20/22.5/25)
   if (isPiramide) {
     const inputs = document.querySelectorAll('.ex-carga-multi');
     cargaFinal = Array.from(inputs).map(inp => inp.value || '0').join('/');
@@ -586,7 +599,6 @@ function editarExercicio(idx) {
   document.getElementById('ex-descanso').value = ex.descanso;
   document.getElementById('ex-obs').value = ex.obs;
   
-  // Restaura a interface da pirâmide
   document.getElementById('ex-is-piramide').checked = ex.isPiramide || false;
   renderCargasMultiplas();
 
@@ -792,19 +804,16 @@ document.getElementById('btn-calcular-salvar-macros').addEventListener('click', 
 
   if(!peso || !altura || !idade) { alert("Preencha peso, altura e idade."); return; }
 
-  // Fórmula Mifflin-St Jeor
   let tmb = (10 * peso) + (6.25 * altura) - (5 * idade);
   tmb = gen === 'M' ? tmb + 5 : tmb - 161;
 
-  // Multiplicador de Atividade + Objetivo de Caloria
   let cals = (tmb * ativ) + obj;
 
-  // Divisão padrão: 2g/kg Prot, 1g/kg Gord, resto Carb
   let prot = peso * 2;
   let gord = peso * 1;
   let carb = (cals - ((prot*4) + (gord*9))) / 4;
 
-  if(carb < 0) carb = 0; // Proteção matemática
+  if(carb < 0) carb = 0; 
 
   state.dieta.meta = {
     cal: Math.round(cals),
@@ -866,7 +875,7 @@ load();
 document.getElementById('input-data-peso').value = new Date().toISOString().split('T')[0];
 updateDashboard();
 renderPlanos();
-renderExecutar(); // Adicionado aqui para carregar junto
+renderExecutar();
 renderDieta();
 renderHistorico();
 renderPesoChart();

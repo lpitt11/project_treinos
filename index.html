@@ -37,8 +37,7 @@
           <h1 class="page-title">Dashboard</h1>
           <p class="page-sub" id="dashboard-date"></p>
         </div>
-        <button class="btn-primary" id="btn-registrar-treino">+ Registrar Treino</button>
-      </div>
+        </div>
 
       <div class="cards-row">
         <div class="stat-card accent">
@@ -387,29 +386,6 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="modal-registrar">
-    <div class="modal modal-sm">
-      <div class="modal-header">
-        <h2>Registrar Treino Realizado</h2>
-        <button class="modal-close" data-close="modal-registrar">&times;</button>
-      </div>
-      <div class="modal-body">
-        <label>Plano realizado</label>
-        <select id="reg-plano"></select>
-        <label>Data</label>
-        <input type="date" id="reg-data"/>
-        <label>Duração (min)</label>
-        <input type="number" id="reg-duracao" min="1" value="60"/>
-        <label>Observações</label>
-        <textarea id="reg-obs" rows="2" placeholder="Como foi o treino?"></textarea>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-ghost" data-close="modal-registrar">Cancelar</button>
-        <button class="btn-primary" id="btn-confirmar-registro">Registrar</button>
-      </div>
-    </div>
-  </div>
-
   <div class="modal-overlay" id="modal-confirm">
     <div class="modal modal-sm">
       <div class="modal-header">
@@ -428,20 +404,26 @@
 
   <div class="modal-overlay" id="modal-executar" style="padding: 0;">
     <div class="modal" style="width: 100vw; height: 100vh; max-width: none; max-height: none; border-radius: 0; border: none; margin: 0;">
-      <div class="modal-header" style="padding: 32px 40px;">
+      <div class="modal-header" style="padding: 32px 40px; align-items: center;">
         <div>
           <h2 id="exec-plano-nome" style="font-size: 40px;">Nome do Treino</h2>
           <p id="exec-plano-dias" style="color:var(--text2); font-size: 16px;"></p>
         </div>
-        <button class="modal-close" data-close="modal-executar" style="font-size: 36px;">&times;</button>
+        <div style="display:flex; align-items:center; gap: 24px;">
+          <div id="exec-timer-display" style="font-family: var(--font-display); font-size: 40px; color: var(--accent); display: none;">00:00</div>
+          <button class="modal-close" data-close="modal-executar" style="font-size: 36px; padding: 0;">&times;</button>
+        </div>
       </div>
       <div class="modal-body" style="padding: 32px 40px;">
         <div id="exec-exercicios-list" style="display: flex; flex-direction: column; gap: 24px;">
           </div>
       </div>
-      <div class="modal-footer" style="padding: 24px 40px;">
-        <button class="btn-ghost" data-close="modal-executar">Cancelar</button>
-        <button class="btn-primary" style="font-size: 18px; padding: 12px 32px;" onclick="concluirTreino()">✓ Concluir Treino</button>
+      <div class="modal-footer" style="padding: 24px 40px; justify-content: space-between;">
+        <button class="btn-ghost" data-close="modal-executar">Sair do Treino</button>
+        <div>
+          <button class="btn-primary" id="btn-iniciar-treino" style="font-size: 18px; padding: 12px 32px;" onclick="iniciarTreino()">▶ Iniciar Treino</button>
+          <button class="btn-primary" id="btn-concluir-treino" style="font-size: 18px; padding: 12px 32px; display: none;" onclick="concluirTreino()">✓ Concluir Treino</button>
+        </div>
       </div>
     </div>
   </div>
