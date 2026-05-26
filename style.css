@@ -618,4 +618,4 @@ textarea { resize: vertical; min-height: 60px; }
   .cards-row { grid-template-columns: 1fr 1fr; }
   .floating-timer { padding: 24px; width: 90%; }
   .floating-timer .timer-display { font-size: 56px; }
-}
+}     

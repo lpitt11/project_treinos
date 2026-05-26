@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" style="background-color: #0d0d0f;">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#0d0d0f"/>
+  <meta name="color-scheme" content="dark"/>
   <title>FitCore — Treino & Dieta</title>
   <link rel="stylesheet" href="style.css"/>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
@@ -27,6 +29,9 @@
     <button class="nav-btn" data-tab="historico" title="Histórico">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg>
     </button>
+    <button class="nav-btn" data-tab="perfil" title="Meu Perfil">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7" stroke-linecap="round"/></svg>
+    </button>
   </nav>
 
   <main class="main">
@@ -37,7 +42,7 @@
           <h1 class="page-title">Dashboard</h1>
           <p class="page-sub" id="dashboard-date"></p>
         </div>
-        </div>
+      </div>
 
       <div class="cards-row">
         <div class="stat-card accent">
@@ -59,24 +64,32 @@
       </div>
 
       <div class="two-col" style="margin-bottom: 28px;">
-        <div class="card">
+        <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
           <div style="display:flex; justify-content:space-between; align-items:center;">
              <h2 class="card-title" style="margin:0;">💧 Hidratação</h2>
              <button class="btn-ghost" style="padding:4px 8px; font-size:12px;" onclick="openModal('modal-meta-agua')">Editar Meta</button>
           </div>
           <div class="progress-bar"><div class="progress-fill" id="water-fill"></div></div>
           <p style="margin-top:8px; text-align:center; font-weight:bold; font-size: 18px;"><span id="water-current">0</span> / <span id="water-goal" style="color:var(--text2)">3000</span> <span style="font-size:14px; color:var(--text3)">ml</span></p>
+          
+          <div id="water-success-msg" style="display:none; background: rgba(200,241,53,0.15); color: var(--accent); padding: 8px; border-radius: 8px; text-align: center; font-size: 13px; font-weight: bold; margin-top: 4px; margin-bottom: 4px;">
+            🎉 Meta diária atingida!
+          </div>
+
           <div class="water-controls">
             <button class="btn-ghost full-width" onclick="addWater(250)">+ Copo (250ml)</button>
             <button class="btn-ghost full-width" onclick="addWater(500)">+ Garrafa (500ml)</button>
           </div>
         </div>
-        <div class="card">
+
+        <div class="card" style="display: flex; flex-direction: column;">
            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
              <h2 class="card-title" style="margin:0;">📉 Evolução de Peso</h2>
              <button class="btn-ghost" style="padding:4px 8px; font-size:12px;" onclick="openModal('modal-peso')">+ Registrar Peso</button>
            </div>
-           <canvas id="pesoChart" height="90"></canvas>
+           <div style="position: relative; flex-grow: 1; min-height: 130px; width: 100%;">
+             <canvas id="pesoChart"></canvas>
+           </div>
         </div>
       </div>
 
@@ -167,6 +180,44 @@
         <div class="empty-state">
           <div class="empty-icon">📅</div>
           <p>Nenhum treino registrado ainda.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="tab-content" id="tab-perfil">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Meu Perfil</h1>
+          <p class="page-sub">Gerencie suas informações e avatar</p>
+        </div>
+      </div>
+      
+      <div class="card" style="max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; align-items: center;">
+        <div style="position: relative; cursor: pointer;" onclick="document.getElementById('perfil-foto-input').click()">
+          <img id="perfil-foto-preview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239090a0'><circle cx='12' cy='8' r='4'/><path d='M4 20c0-4 4-7 8-7s8 3 8 7'/></svg>" style="width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent); background: var(--bg3); transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'"/>
+          <div style="position: absolute; bottom: 4px; right: 4px; background: var(--accent); color: var(--bg); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 3px solid var(--bg2);">📷</div>
+        </div>
+        <input type="file" id="perfil-foto-input" accept="image/*" style="display: none;" />
+
+        <div style="width: 100%; display: flex; flex-direction: column; gap: 16px;">
+          <div>
+            <label>Seu Nome</label>
+            <input type="text" id="perfil-nome" placeholder="Como quer ser chamado?" />
+          </div>
+          <div class="row-3">
+            <div><label>Idade</label><input type="number" id="perfil-idade" placeholder="Ex: 25" /></div>
+            <div><label>Peso (kg)</label><input type="number" id="perfil-peso" placeholder="Ex: 80" /></div>
+            <div><label>Altura (cm)</label><input type="number" id="perfil-altura" placeholder="Ex: 175" /></div>
+          </div>
+          <div>
+            <label>Objetivo Principal</label>
+            <select id="perfil-objetivo">
+              <option value="hipertrofia">Hipertrofia (Ganho de Massa)</option>
+              <option value="emagrecimento">Emagrecimento (Perda de Gordura)</option>
+              <option value="manutencao">Manutenção / Qualidade de Vida</option>
+            </select>
+          </div>
+          <button class="btn-primary" id="btn-salvar-perfil" style="margin-top: 12px; font-size: 16px; padding: 14px;">Salvar Alterações</button>
         </div>
       </div>
     </section>
@@ -429,5 +480,6 @@
   </div>
 
   <script src="app.js"></script>
+  <script src="perfil.js"></script>
 </body>
 </html>

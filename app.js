@@ -1,5 +1,6 @@
 // ===== STATE =====
 const state = {
+  perfil: { nome: '', foto: '', idade: '', peso: '', altura: '', objetivo: 'hipertrofia' },
   planos: [],
   historico: [],
   dieta: { meta: { cal: 0, prot: 0, carb: 0, gord: 0 }, refeicoes: [] },
@@ -15,6 +16,7 @@ const state = {
 
 // ===== PERSISTENCE =====
 function save() {
+  localStorage.setItem('fitcore_perfil', JSON.stringify(state.perfil));
   localStorage.setItem('fitcore_planos', JSON.stringify(state.planos));
   localStorage.setItem('fitcore_historico', JSON.stringify(state.historico));
   localStorage.setItem('fitcore_dieta', JSON.stringify(state.dieta));
@@ -23,6 +25,7 @@ function save() {
 }
 function load() {
   try {
+    state.perfil = JSON.parse(localStorage.getItem('fitcore_perfil')) || { nome: '', foto: '', idade: '', peso: '', altura: '', objetivo: 'hipertrofia' };
     state.planos = JSON.parse(localStorage.getItem('fitcore_planos')) || [];
     state.historico = JSON.parse(localStorage.getItem('fitcore_historico')) || [];
     state.dieta = JSON.parse(localStorage.getItem('fitcore_dieta')) || { meta: { cal: 0, prot: 0, carb: 0, gord: 0 }, refeicoes: [] };
@@ -55,8 +58,8 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 document.querySelectorAll('[data-close]').forEach(btn => {
   btn.addEventListener('click', () => {
     closeModal(btn.dataset.close);
-    // Limpar o cronômetro do treino se fechar pelo botão "Cancelar" ou "X"
-    if(btn.dataset.close === 'modal-executar' && workoutTimerInterval) {
+    // Limpar o cronômetro do treino APENAS se o treino NÃO estiver rodando ativamente
+    if(btn.dataset.close === 'modal-executar' && workoutTimerInterval && !isWorkoutRunning) {
       clearInterval(workoutTimerInterval);
     }
   });
@@ -65,7 +68,8 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
   overlay.addEventListener('click', e => {
     if (e.target === overlay) {
       closeModal(overlay.id);
-      if(overlay.id === 'modal-executar' && workoutTimerInterval) {
+      // Limpar o cronômetro do treino APENAS se o treino NÃO estiver rodando ativamente
+      if(overlay.id === 'modal-executar' && workoutTimerInterval && !isWorkoutRunning) {
         clearInterval(workoutTimerInterval);
       }
     }
@@ -156,6 +160,16 @@ function updateWaterUI() {
   document.getElementById('water-goal').textContent = state.agua.meta;
   const pct = Math.min((state.agua.ml / state.agua.meta) * 100, 100);
   document.getElementById('water-fill').style.width = pct + '%';
+  
+  const successMsg = document.getElementById('water-success-msg');
+  
+  if (state.agua.ml >= state.agua.meta && state.agua.meta > 0) {
+    document.getElementById('water-current').style.color = 'var(--accent)';
+    if (successMsg) successMsg.style.display = 'block';
+  } else {
+    document.getElementById('water-current').style.color = 'var(--text)';
+    if (successMsg) successMsg.style.display = 'none';
+  }
 }
 
 function addWater(ml) {
@@ -174,7 +188,6 @@ document.getElementById('btn-salvar-meta-agua').addEventListener('click', () => 
 let pesoChartInst = null;
 function renderPesoChart() {
   const ctx = document.getElementById('pesoChart').getContext('2d');
-  // Pega ultimos 10 registros e ordena
   const data = [...state.pesos].sort((a,b) => a.data.localeCompare(b.data)).slice(-10); 
   
   if(pesoChartInst) pesoChartInst.destroy();
@@ -211,7 +224,6 @@ document.getElementById('btn-salvar-peso').addEventListener('click', () => {
   const d = document.getElementById('input-data-peso').value;
   if(!p || !d) { alert('Preencha peso e data.'); return; }
   
-  // Substitui se for o mesmo dia
   const idx = state.pesos.findIndex(x => x.data === d);
   if(idx > -1) state.pesos[idx].peso = p;
   else state.pesos.push({ data: d, peso: p });
@@ -223,43 +235,55 @@ document.getElementById('btn-salvar-peso').addEventListener('click', () => {
 
 // ===== MÓDULO: CRONÔMETRO DE DESCANSO =====
 let timerInterval;
-let timerTime = 0;
+let timerEndTime = 0;
+let timerRemaining = 0;
 let isTimerPaused = false;
 
 function startTimer(seconds) {
-  timerTime = seconds;
+  timerRemaining = seconds;
   isTimerPaused = false;
+  timerEndTime = Date.now() + (timerRemaining * 1000);
+  
   document.getElementById('floating-timer').style.display = 'flex';
   document.getElementById('timer-action-btn').textContent = 'Pausar';
   
-  updateTimerUI();
+  updateTimerUI(timerRemaining);
   clearInterval(timerInterval);
+  
   timerInterval = setInterval(() => {
     if(!isTimerPaused) {
-      timerTime--;
-      if(timerTime <= 0) { 
+      const now = Date.now();
+      timerRemaining = Math.max(0, Math.ceil((timerEndTime - now) / 1000));
+      updateTimerUI(timerRemaining);
+      
+      if(timerRemaining <= 0) { 
         clearInterval(timerInterval); 
-        playBeep(); // Toca som quando zera
+        playBeep();
       }
-      updateTimerUI();
     }
-  }, 1000);
+  }, 200);
 }
 
-function updateTimerUI() {
-  const m = Math.floor(Math.max(timerTime,0)/60).toString().padStart(2,'0');
-  const s = (Math.max(timerTime,0)%60).toString().padStart(2,'0');
+function updateTimerUI(secs) {
+  const m = Math.floor(Math.max(secs, 0) / 60).toString().padStart(2, '0');
+  const s = (Math.max(secs, 0) % 60).toString().padStart(2, '0');
   document.getElementById('timer-display').textContent = `${m}:${s}`;
 }
 
 function toggleTimer() {
   isTimerPaused = !isTimerPaused;
+  if (!isTimerPaused) {
+    timerEndTime = Date.now() + (timerRemaining * 1000);
+  }
   document.getElementById('timer-action-btn').textContent = isTimerPaused ? 'Retomar' : 'Pausar';
 }
 
 function addTimerTime(secs) {
-  timerTime += secs;
-  updateTimerUI();
+  timerRemaining += secs;
+  if (!isTimerPaused) {
+    timerEndTime += (secs * 1000);
+  }
+  updateTimerUI(timerRemaining);
 }
 
 function closeTimer() {
@@ -269,16 +293,22 @@ function closeTimer() {
 
 function playBeep() {
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(880, ctx.currentTime);
-  gain.gain.setValueAtTime(1, ctx.currentTime);
-  osc.start();
-  gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 1);
-  osc.stop(ctx.currentTime + 1);
+  function beepAt(time) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(1, time);
+    gain.gain.exponentialRampToValueAtTime(0.00001, time + 0.4);
+    osc.start(time);
+    osc.stop(time + 0.4);
+  }
+  const now = ctx.currentTime;
+  beepAt(now);
+  beepAt(now + 0.6);
+  beepAt(now + 1.2);
 }
 
 // ===== PLANOS DE TREINO (GERENCIAMENTO) =====
@@ -310,7 +340,7 @@ document.getElementById('btn-salvar-plano').addEventListener('click', () => {
   save();
   closeModal('modal-plano');
   renderPlanos();
-  renderExecutar(); // Atualiza a aba de treinar também
+  renderExecutar();
   updateDashboard();
 });
 
@@ -378,6 +408,8 @@ function excluirPlano(id) {
 let currentExecPlanoId = null;
 let workoutTimerInterval = null;
 let workoutElapsedSeconds = 0;
+let isWorkoutRunning = false;
+let checkedExerciciosIds = [];
 
 function renderExecutar() {
   const grid = document.getElementById('executar-grid');
@@ -401,54 +433,102 @@ function abrirExecucao(id) {
   const plano = state.planos.find(p => p.id === id);
   if (!plano) return;
   
-  currentExecPlanoId = id;
-  document.getElementById('exec-plano-nome').textContent = plano.nome;
-  document.getElementById('exec-plano-dias').textContent = plano.dias.length > 0 ? plano.dias.join(', ') : 'Dias não definidos';
+  if (currentExecPlanoId === id && isWorkoutRunning) {
+    document.getElementById('exec-plano-nome').textContent = plano.nome;
+    document.getElementById('exec-plano-dias').textContent = plano.dias.length > 0 ? plano.dias.join(', ') : 'Dias não definidos';
+    document.getElementById('btn-iniciar-treino').style.display = 'none';
+    document.getElementById('btn-concluir-treino').style.display = 'inline-block';
+    document.getElementById('exec-timer-display').style.display = 'block';
+    
+    const m = Math.floor(workoutElapsedSeconds / 60).toString().padStart(2, '0');
+    const s = (workoutElapsedSeconds % 60).toString().padStart(2, '0');
+    document.getElementById('exec-timer-display').textContent = `${m}:${s}`;
+  } else {
+    clearInterval(workoutTimerInterval);
+    workoutElapsedSeconds = 0;
+    isWorkoutRunning = false;
+    currentExecPlanoId = id;
+    checkedExerciciosIds = [];
 
-  // Reseta o estado dos botões e timer toda vez que abrir um treino novo
-  clearInterval(workoutTimerInterval);
-  workoutElapsedSeconds = 0;
-  document.getElementById('exec-timer-display').textContent = '00:00';
-  document.getElementById('exec-timer-display').style.display = 'none';
-  document.getElementById('btn-iniciar-treino').style.display = 'inline-block';
-  document.getElementById('btn-concluir-treino').style.display = 'none';
+    document.getElementById('exec-timer-display').textContent = '00:00';
+    document.getElementById('exec-timer-display').style.display = 'none';
+    document.getElementById('btn-iniciar-treino').style.display = 'inline-block';
+    document.getElementById('btn-concluir-treino').style.display = 'none';
+    
+    document.getElementById('exec-plano-nome').textContent = plano.nome;
+    document.getElementById('exec-plano-dias').textContent = plano.dias.length > 0 ? plano.dias.join(', ') : 'Dias não definidos';
+  }
 
   const list = document.getElementById('exec-exercicios-list');
   if (plano.exercicios.length === 0) {
     list.innerHTML = '<p class="empty-msg">Nenhum exercício cadastrado neste plano.</p>';
   } else {
-    list.innerHTML = plano.exercicios.map((ex, i) => `
-      <div class="card" style="padding: 24px; border-left: 4px solid var(--accent); background: var(--bg3);">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
-          <div>
-            <h3 style="font-family:var(--font-display); font-size:28px; color:var(--text); line-height: 1.1;">${escHtml(ex.nome)}</h3>
-            <span class="dia-tag" style="background:var(--bg); color:var(--text2); margin-top:4px; display:inline-block;">${ex.grupo || 'Geral'}</span>
+    list.innerHTML = plano.exercicios.map((ex, i) => {
+      const isChecked = checkedExerciciosIds.includes(ex.id);
+      return `
+        <div class="card" id="ex-card-${ex.id}" style="padding: 24px; border-left: 4px solid ${isChecked ? 'var(--accent2)' : 'var(--accent)'}; background: var(--bg3); transition: all 0.2s;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
+            <div>
+              <h3 id="ex-title-${ex.id}" style="font-family:var(--font-display); font-size:28px; color:var(--text); line-height: 1.1; ${isChecked ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${escHtml(ex.nome)}</h3>
+              <span class="dia-tag" style="background:var(--bg); color:var(--text2); margin-top:4px; display:inline-block;">${ex.grupo || 'Geral'}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <button class="btn-check" onclick="toggleCheckExercicio('${ex.id}')" style="background:${isChecked ? 'var(--accent2)' : 'transparent'}; color:${isChecked ? '#0d0d0f' : 'var(--text3)'}; border:1px solid ${isChecked ? 'var(--accent2)' : 'var(--border)'}; border-radius:var(--radius-sm); width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px; font-weight:bold; transition:all 0.15s;" title="Concluir exercício">
+                ${isChecked ? '✓' : ''}
+              </button>
+              <button class="btn-primary" style="display:flex; align-items:center; gap:8px; font-size:16px;" onclick="startTimer(${ex.descanso})">
+                ⏱️ ${ex.descanso}s
+              </button>
+            </div>
           </div>
-          <button class="btn-primary" style="display:flex; align-items:center; gap:8px; font-size:16px;" onclick="startTimer(${ex.descanso})">
-            ⏱️ ${ex.descanso}s
-          </button>
+          
+          <div id="ex-stats-${ex.id}" style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 16px; background: var(--bg2); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); transition: opacity 0.2s; ${isChecked ? 'opacity: 0.4;' : ''}">
+            <div><div style="color:var(--text2); font-size:12px; text-transform:uppercase;">Séries</div><strong style="color:var(--text); font-size:18px;">${ex.series}</strong></div>
+            <div><div style="color:var(--text2); font-size:12px; text-transform:uppercase;">Repetições</div><strong style="color:var(--text); font-size:18px;">${ex.reps || '--'}</strong></div>
+            <div><div style="color:var(--text2); font-size:12px; text-transform:uppercase;">Carga</div><strong style="color:var(--accent); font-size:18px;">${ex.carga ? ex.carga + ' kg' : '--'}</strong></div>
+          </div>
+          
+          ${ex.obs ? `<div id="ex-obs-${ex.id}" style="margin-top:16px; font-size:14px; color:var(--text2); padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; transition: opacity 0.2s; ${isChecked ? 'opacity: 0.4;' : ''}">ℹ️ <i>${escHtml(ex.obs)}</i></div>` : ''}
         </div>
-        
-        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 16px; background: var(--bg2); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
-          <div><div style="color:var(--text2); font-size:12px; text-transform:uppercase;">Séries</div><strong style="color:var(--text); font-size:18px;">${ex.series}</strong></div>
-          <div><div style="color:var(--text2); font-size:12px; text-transform:uppercase;">Repetições</div><strong style="color:var(--text); font-size:18px;">${ex.reps || '--'}</strong></div>
-          <div><div style="color:var(--text2); font-size:12px; text-transform:uppercase;">Carga</div><strong style="color:var(--accent); font-size:18px;">${ex.carga ? ex.carga + ' kg' : '--'}</strong></div>
-        </div>
-        
-        ${ex.obs ? `<div style="margin-top:16px; font-size:14px; color:var(--text2); padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px;">ℹ️ <i>${escHtml(ex.obs)}</i></div>` : ''}
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
   openModal('modal-executar');
 }
 
+function toggleCheckExercicio(id) {
+  const idx = checkedExerciciosIds.indexOf(id);
+  const card = document.getElementById(`ex-card-${id}`);
+  const title = document.getElementById(`ex-title-${id}`);
+  const stats = document.getElementById(`ex-stats-${id}`);
+  const obs = document.getElementById(`ex-obs-${id}`);
+  const btn = card ? card.querySelector('.btn-check') : null;
+
+  if (idx > -1) {
+    checkedExerciciosIds.splice(idx, 1);
+    if (card) card.style.borderLeftColor = 'var(--accent)';
+    if (title) { title.style.textDecoration = 'none'; title.style.opacity = '1'; }
+    if (stats) stats.style.opacity = '1';
+    if (obs) obs.style.opacity = '1';
+    if (btn) { btn.style.background = 'transparent'; btn.style.color = 'var(--text3)'; btn.style.borderColor = 'var(--border)'; btn.innerHTML = ''; }
+  } else {
+    checkedExerciciosIds.push(id);
+    if (card) card.style.borderLeftColor = 'var(--accent2)';
+    if (title) { title.style.textDecoration = 'line-through'; title.style.opacity = '0.5'; }
+    if (stats) stats.style.opacity = '0.4';
+    if (obs) obs.style.opacity = '0.4';
+    if (btn) { btn.style.background = 'var(--accent2)'; btn.style.color = '#0d0d0f'; btn.style.borderColor = 'var(--accent2)'; btn.innerHTML = '✓'; }
+  }
+}
+
 function iniciarTreino() {
-  // Esconde o "Iniciar" e mostra "Concluir" + Timer
   document.getElementById('btn-iniciar-treino').style.display = 'none';
   document.getElementById('btn-concluir-treino').style.display = 'inline-block';
   document.getElementById('exec-timer-display').style.display = 'block';
   
-  workoutElapsedSeconds = 0;
+  isWorkoutRunning = true;
+  clearInterval(workoutTimerInterval);
+  
   workoutTimerInterval = setInterval(() => {
     workoutElapsedSeconds++;
     const m = Math.floor(workoutElapsedSeconds / 60).toString().padStart(2, '0');
@@ -459,15 +539,13 @@ function iniciarTreino() {
 
 function concluirTreino() {
   clearInterval(workoutTimerInterval);
+  isWorkoutRunning = false;
   
   const plano = state.planos.find(p => p.id === currentExecPlanoId);
   if(!plano) return;
   
-  // Transforma os segundos gravados em minutos para salvar no histórico
-  // Math.max(1, x) assegura que mesmo se durar 10 segundos apareça como 1 minuto no histórico
   const minutos = Math.max(1, Math.ceil(workoutElapsedSeconds / 60));
   
-  // Salva diretamente o registro no histórico sem abrir um segundo modal
   const registro = {
     id: uid(),
     planoId: plano.id,
@@ -479,6 +557,10 @@ function concluirTreino() {
   
   state.historico.push(registro);
   save();
+  
+  checkedExerciciosIds = [];
+  workoutElapsedSeconds = 0;
+  currentExecPlanoId = null;
   
   closeModal('modal-executar');
   renderHistorico();
@@ -705,17 +787,15 @@ function excluirRefeicao(id) {
   });
 }
 
+// RESTANTE DO CÓDIGO DA DIETA E HISTÓRICO PERMANECE INTEGRAL E INALTERADO
 function renderDieta() {
   const meta = state.dieta.meta;
-  document.getElementById('meta-cal-display').textContent =
-    meta.cal ? `${meta.cal} kcal` : '— kcal';
-
+  document.getElementById('meta-cal-display').textContent = meta.cal ? `${meta.cal} kcal` : '— kcal';
   const lista = document.getElementById('refeicoes-lista');
   if (state.dieta.refeicoes.length === 0) {
     lista.innerHTML = `<div class="empty-state"><div class="empty-icon">🥗</div><p>Nenhuma refeição cadastrada.<br>Clique em <b>+ Nova Refeição</b> para começar.</p></div>`;
     return;
   }
-
   const sorted = [...state.dieta.refeicoes].sort((a, b) => a.horario.localeCompare(b.horario));
   lista.innerHTML = sorted.map(ref => {
     const totalCal = ref.alimentos.reduce((s, a) => s + (parseFloat(a.cal) || 0), 0);
@@ -772,7 +852,6 @@ function toggleRefeicao(id) {
   if (body) body.style.display = body.style.display === 'none' ? 'flex' : 'none';
 }
 
-// ===== META CALÓRICA & CALCULADORA =====
 document.getElementById('btn-editar-meta').addEventListener('click', () => {
   const m = state.dieta.meta;
   document.getElementById('meta-cal-input').value = m.cal || '';
@@ -801,34 +880,21 @@ document.getElementById('btn-calcular-salvar-macros').addEventListener('click', 
   const idade = parseFloat(document.getElementById('calc-idade').value);
   const ativ = parseFloat(document.getElementById('calc-ativ').value);
   const obj = parseFloat(document.getElementById('calc-obj').value);
-
   if(!peso || !altura || !idade) { alert("Preencha peso, altura e idade."); return; }
-
   let tmb = (10 * peso) + (6.25 * altura) - (5 * idade);
   tmb = gen === 'M' ? tmb + 5 : tmb - 161;
-
   let cals = (tmb * ativ) + obj;
-
   let prot = peso * 2;
   let gord = peso * 1;
   let carb = (cals - ((prot*4) + (gord*9))) / 4;
-
   if(carb < 0) carb = 0; 
-
-  state.dieta.meta = {
-    cal: Math.round(cals),
-    prot: Math.round(prot),
-    gord: Math.round(gord),
-    carb: Math.round(carb)
-  };
-
+  state.dieta.meta = { cal: Math.round(cals), prot: Math.round(prot), gord: Math.round(gord), carb: Math.round(carb) };
   save();
   closeModal('modal-calc-macros');
   renderDieta();
   alert("Sua meta foi calculada e salva com sucesso!");
 });
 
-// ===== HISTÓRICO =====
 function renderHistorico() {
   const lista = document.getElementById('historico-lista');
   if (state.historico.length === 0) {
@@ -865,7 +931,6 @@ function formatFullDate(dateStr) {
   return d.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 }
 
-// ===== UTILS =====
 function escHtml(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -878,4 +943,4 @@ renderPlanos();
 renderExecutar();
 renderDieta();
 renderHistorico();
-renderPesoChart();
+renderPesoChart();  
