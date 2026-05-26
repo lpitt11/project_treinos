@@ -3,10 +3,12 @@ const state = {
   planos: [],
   historico: [],
   dieta: { meta: { cal: 0, prot: 0, carb: 0, gord: 0 }, refeicoes: [] },
+  agua: { data: '', ml: 0, meta: 3000 },
+  pesos: [], // Historico de pesos
   editingPlanoId: null,
   editingRefeicaoId: null,
-  tempExercicios: [],   // exercises being added in modal
-  tempAlimentos: [],    // foods being added in modal
+  tempExercicios: [],   
+  tempAlimentos: [],    
   editingExercicioIdx: null,
   confirmCallback: null,
 };
@@ -16,12 +18,16 @@ function save() {
   localStorage.setItem('fitcore_planos', JSON.stringify(state.planos));
   localStorage.setItem('fitcore_historico', JSON.stringify(state.historico));
   localStorage.setItem('fitcore_dieta', JSON.stringify(state.dieta));
+  localStorage.setItem('fitcore_agua', JSON.stringify(state.agua));
+  localStorage.setItem('fitcore_pesos', JSON.stringify(state.pesos));
 }
 function load() {
   try {
     state.planos = JSON.parse(localStorage.getItem('fitcore_planos')) || [];
     state.historico = JSON.parse(localStorage.getItem('fitcore_historico')) || [];
     state.dieta = JSON.parse(localStorage.getItem('fitcore_dieta')) || { meta: { cal: 0, prot: 0, carb: 0, gord: 0 }, refeicoes: [] };
+    state.agua = JSON.parse(localStorage.getItem('fitcore_agua')) || { data: '', ml: 0, meta: 3000 };
+    state.pesos = JSON.parse(localStorage.getItem('fitcore_pesos')) || [];
   } catch { /* ignore */ }
 }
 
@@ -35,6 +41,10 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.add('active');
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab === 'dashboard') {
+      updateDashboard();
+      renderPesoChart();
+    }
   });
 });
 
@@ -78,8 +88,7 @@ function updateDashboard() {
   }).length;
 
   document.getElementById('stat-treinos').textContent = treinosMes;
-  document.getElementById('stat-exercicios').textContent =
-    state.planos.reduce((acc, p) => acc + p.exercicios.length, 0);
+  document.getElementById('stat-exercicios').textContent = state.planos.reduce((acc, p) => acc + p.exercicios.length, 0);
   document.getElementById('stat-planos').textContent = state.planos.length;
   document.getElementById('stat-refeicoes').textContent = state.dieta.refeicoes.length;
 
@@ -91,9 +100,7 @@ function updateDashboard() {
   if (planosHoje.length === 0 || state.planos.length === 0) {
     ul.innerHTML = '<li class="empty-msg">Nenhum treino para hoje.</li>';
   } else {
-    ul.innerHTML = planosHoje.map(p =>
-      `<li><span>${p.nome}</span><span class="dia-tag">${diaHoje}</span></li>`
-    ).join('');
+    ul.innerHTML = planosHoje.map(p => `<li><span>${p.nome}</span><span class="dia-tag">${diaHoje}</span></li>`).join('');
   }
 
   // Histórico recente
@@ -102,15 +109,157 @@ function updateDashboard() {
   if (recentes.length === 0) {
     ulH.innerHTML = '<li class="empty-msg">Nenhum treino registrado.</li>';
   } else {
-    ulH.innerHTML = recentes.map(h =>
-      `<li><span>${h.planoNome}</span><span style="color:var(--text2);font-size:12px">${formatDate(h.data)}</span></li>`
-    ).join('');
+    ulH.innerHTML = recentes.map(h => `<li><span>${h.planoNome}</span><span style="color:var(--text2);font-size:12px">${formatDate(h.data)}</span></li>`).join('');
   }
+
+  updateWaterUI();
 }
 
 function formatDate(dateStr) {
   const d = new Date(dateStr + 'T12:00:00');
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+
+// ===== MÓDULO: ÁGUA =====
+function checkWaterDay() {
+  const hojeStr = new Date().toISOString().split('T')[0];
+  if(state.agua.data !== hojeStr) {
+    state.agua.data = hojeStr;
+    state.agua.ml = 0; // zera pro novo dia
+    save();
+  }
+}
+
+function updateWaterUI() {
+  checkWaterDay();
+  document.getElementById('water-current').textContent = state.agua.ml;
+  document.getElementById('water-goal').textContent = state.agua.meta;
+  const pct = Math.min((state.agua.ml / state.agua.meta) * 100, 100);
+  document.getElementById('water-fill').style.width = pct + '%';
+}
+
+function addWater(ml) {
+  state.agua.ml += ml;
+  save();
+  updateWaterUI();
+}
+
+document.getElementById('btn-salvar-meta-agua').addEventListener('click', () => {
+  const v = parseInt(document.getElementById('input-meta-agua').value);
+  if(v > 0) { state.agua.meta = v; save(); updateWaterUI(); }
+  closeModal('modal-meta-agua');
+});
+
+// ===== MÓDULO: GRÁFICO DE PESO =====
+let pesoChartInst = null;
+function renderPesoChart() {
+  const ctx = document.getElementById('pesoChart').getContext('2d');
+  // Pega ultimos 10 registros e ordena
+  const data = [...state.pesos].sort((a,b) => a.data.localeCompare(b.data)).slice(-10); 
+  
+  if(pesoChartInst) pesoChartInst.destroy();
+  
+  pesoChartInst = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.map(d => formatDate(d.data)),
+      datasets: [{ 
+        label: 'Peso (kg)', 
+        data: data.map(d => d.peso), 
+        borderColor: '#c8f135', 
+        backgroundColor: 'rgba(200,241,53,0.1)', 
+        fill: true, 
+        tension: 0.3,
+        pointBackgroundColor: '#0d0d0f',
+        pointBorderColor: '#c8f135'
+      }]
+    },
+    options: { 
+      responsive: true, 
+      maintainAspectRatio: false,
+      scales: { 
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9090a0'} },
+        x: { grid: { display: false }, ticks: { color: '#9090a0'} }
+      }, 
+      plugins: { legend: { display: false } } 
+    }
+  });
+}
+
+document.getElementById('btn-salvar-peso').addEventListener('click', () => {
+  const p = parseFloat(document.getElementById('input-peso-hoje').value);
+  const d = document.getElementById('input-data-peso').value;
+  if(!p || !d) { alert('Preencha peso e data.'); return; }
+  
+  // Substitui se for o mesmo dia
+  const idx = state.pesos.findIndex(x => x.data === d);
+  if(idx > -1) state.pesos[idx].peso = p;
+  else state.pesos.push({ data: d, peso: p });
+  
+  save();
+  closeModal('modal-peso');
+  renderPesoChart();
+});
+
+// ===== MÓDULO: CRONÔMETRO DE DESCANSO =====
+let timerInterval;
+let timerTime = 0;
+let isTimerPaused = false;
+
+function startTimer(seconds) {
+  timerTime = seconds;
+  isTimerPaused = false;
+  document.getElementById('floating-timer').style.display = 'flex';
+  document.getElementById('timer-action-btn').textContent = 'Pausar';
+  
+  updateTimerUI();
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if(!isTimerPaused) {
+      timerTime--;
+      if(timerTime <= 0) { 
+        clearInterval(timerInterval); 
+        playBeep(); // Toca som quando zera
+      }
+      updateTimerUI();
+    }
+  }, 1000);
+}
+
+function updateTimerUI() {
+  const m = Math.floor(Math.max(timerTime,0)/60).toString().padStart(2,'0');
+  const s = (Math.max(timerTime,0)%60).toString().padStart(2,'0');
+  document.getElementById('timer-display').textContent = `${m}:${s}`;
+}
+
+function toggleTimer() {
+  isTimerPaused = !isTimerPaused;
+  document.getElementById('timer-action-btn').textContent = isTimerPaused ? 'Retomar' : 'Pausar';
+}
+
+function addTimerTime(secs) {
+  timerTime += secs;
+  updateTimerUI();
+}
+
+function closeTimer() {
+  clearInterval(timerInterval);
+  document.getElementById('floating-timer').style.display = 'none';
+}
+
+function playBeep() {
+  // Bipe simples embutido com Web Audio API pra evitar problemas de link
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(880, ctx.currentTime);
+  gain.gain.setValueAtTime(1, ctx.currentTime);
+  osc.start();
+  gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 1);
+  osc.stop(ctx.currentTime + 1);
 }
 
 // ===== REGISTRAR TREINO =====
@@ -201,7 +350,10 @@ function renderPlanos() {
                 <div class="exercicio-nome">${escHtml(ex.nome)}</div>
                 <div class="exercicio-info">${ex.series}x${ex.reps} ${ex.carga ? '— ' + ex.carga + 'kg' : ''}</div>
               </div>
-              <span class="exercicio-grupo">${ex.grupo || '—'}</span>
+              <div class="exercicio-acoes-rapidas">
+                <span class="exercicio-grupo">${ex.grupo || '—'}</span>
+                <button class="btn-ghost" style="padding: 2px 6px; font-size:12px; margin-left:4px;" title="Iniciar Descanso (${ex.descanso}s)" onclick="startTimer(${ex.descanso})">⏱️</button>
+              </div>
             </div>
           `).join('')}
           ${p.exercicios.length > 3 ? `<div style="color:var(--text3);font-size:12px;text-align:center">+${p.exercicios.length - 3} mais</div>` : ''}
@@ -465,7 +617,7 @@ function toggleRefeicao(id) {
   if (body) body.style.display = body.style.display === 'none' ? 'flex' : 'none';
 }
 
-// ===== META CALÓRICA =====
+// ===== META CALÓRICA & CALCULADORA =====
 document.getElementById('btn-editar-meta').addEventListener('click', () => {
   const m = state.dieta.meta;
   document.getElementById('meta-cal-input').value = m.cal || '';
@@ -474,6 +626,7 @@ document.getElementById('btn-editar-meta').addEventListener('click', () => {
   document.getElementById('meta-gord-input').value = m.gord || '';
   openModal('modal-meta');
 });
+
 document.getElementById('btn-salvar-meta').addEventListener('click', () => {
   state.dieta.meta = {
     cal: parseFloat(document.getElementById('meta-cal-input').value) || 0,
@@ -484,6 +637,43 @@ document.getElementById('btn-salvar-meta').addEventListener('click', () => {
   save();
   closeModal('modal-meta');
   renderDieta();
+});
+
+document.getElementById('btn-calcular-salvar-macros').addEventListener('click', () => {
+  const gen = document.getElementById('calc-gen').value;
+  const peso = parseFloat(document.getElementById('calc-peso').value);
+  const altura = parseFloat(document.getElementById('calc-altura').value);
+  const idade = parseFloat(document.getElementById('calc-idade').value);
+  const ativ = parseFloat(document.getElementById('calc-ativ').value);
+  const obj = parseFloat(document.getElementById('calc-obj').value);
+
+  if(!peso || !altura || !idade) { alert("Preencha peso, altura e idade."); return; }
+
+  // Fórmula Mifflin-St Jeor
+  let tmb = (10 * peso) + (6.25 * altura) - (5 * idade);
+  tmb = gen === 'M' ? tmb + 5 : tmb - 161;
+
+  // Multiplicador de Atividade + Objetivo de Caloria
+  let cals = (tmb * ativ) + obj;
+
+  // Divisão padrão: 2g/kg Prot, 1g/kg Gord, resto Carb
+  let prot = peso * 2;
+  let gord = peso * 1;
+  let carb = (cals - ((prot*4) + (gord*9))) / 4;
+
+  if(carb < 0) carb = 0; // Proteção matemática
+
+  state.dieta.meta = {
+    cal: Math.round(cals),
+    prot: Math.round(prot),
+    gord: Math.round(gord),
+    carb: Math.round(carb)
+  };
+
+  save();
+  closeModal('modal-calc-macros');
+  renderDieta();
+  alert("Sua meta foi calculada e salva com sucesso!");
 });
 
 // ===== HISTÓRICO =====
@@ -530,7 +720,9 @@ function escHtml(str) {
 
 // ===== INIT =====
 load();
+document.getElementById('input-data-peso').value = new Date().toISOString().split('T')[0];
 updateDashboard();
 renderPlanos();
 renderDieta();
 renderHistorico();
+renderPesoChart();

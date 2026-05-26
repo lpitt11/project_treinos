@@ -6,12 +6,12 @@
   <title>FitCore — Treino & Dieta</title>
   <link rel="stylesheet" href="style.css"/>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-  <!-- SIDEBAR NAV -->
   <nav class="sidebar">
-    <div class="logo">LP</div>
+    <div class="logo">FC</div>
     <button class="nav-btn active" data-tab="dashboard" title="Dashboard">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
     </button>
@@ -26,10 +26,8 @@
     </button>
   </nav>
 
-  <!-- MAIN CONTENT -->
   <main class="main">
 
-    <!-- DASHBOARD -->
     <section class="tab-content active" id="tab-dashboard">
       <div class="page-header">
         <div>
@@ -58,6 +56,28 @@
         </div>
       </div>
 
+      <div class="two-col" style="margin-bottom: 28px;">
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+             <h2 class="card-title" style="margin:0;">💧 Hidratação</h2>
+             <button class="btn-ghost" style="padding:4px 8px; font-size:12px;" onclick="openModal('modal-meta-agua')">Editar Meta</button>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" id="water-fill"></div></div>
+          <p style="margin-top:8px; text-align:center; font-weight:bold; font-size: 18px;"><span id="water-current">0</span> / <span id="water-goal" style="color:var(--text2)">3000</span> <span style="font-size:14px; color:var(--text3)">ml</span></p>
+          <div class="water-controls">
+            <button class="btn-ghost full-width" onclick="addWater(250)">+ Copo (250ml)</button>
+            <button class="btn-ghost full-width" onclick="addWater(500)">+ Garrafa (500ml)</button>
+          </div>
+        </div>
+        <div class="card">
+           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+             <h2 class="card-title" style="margin:0;">📉 Evolução de Peso</h2>
+             <button class="btn-ghost" style="padding:4px 8px; font-size:12px;" onclick="openModal('modal-peso')">+ Registrar Peso</button>
+           </div>
+           <canvas id="pesoChart" height="90"></canvas>
+        </div>
+      </div>
+
       <div class="two-col">
         <div class="card">
           <h2 class="card-title">Próximos treinos</h2>
@@ -74,7 +94,6 @@
       </div>
     </section>
 
-    <!-- TREINOS -->
     <section class="tab-content" id="tab-treinos">
       <div class="page-header">
         <div>
@@ -92,7 +111,6 @@
       </div>
     </section>
 
-    <!-- DIETA -->
     <section class="tab-content" id="tab-dieta">
       <div class="page-header">
         <div>
@@ -102,12 +120,15 @@
         <button class="btn-primary" id="btn-nova-refeicao">+ Nova Refeição</button>
       </div>
 
-      <div class="meta-calorica">
+      <div class="meta-calorica" style="flex-wrap:wrap; gap: 16px;">
         <div class="meta-info">
           <span>Meta calórica diária:</span>
           <span class="meta-valor" id="meta-cal-display">— kcal</span>
         </div>
-        <button class="btn-ghost" id="btn-editar-meta">Editar meta</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-ghost" onclick="openModal('modal-calc-macros')" style="color:var(--accent); border-color:var(--accent);">Calculadora de Macros</button>
+          <button class="btn-ghost" id="btn-editar-meta">Editar manual</button>
+        </div>
       </div>
 
       <div class="refeicoes-lista" id="refeicoes-lista">
@@ -118,7 +139,6 @@
       </div>
     </section>
 
-    <!-- HISTÓRICO -->
     <section class="tab-content" id="tab-historico">
       <div class="page-header">
         <div>
@@ -136,9 +156,18 @@
 
   </main>
 
-  <!-- ===== MODALS ===== -->
+  <div class="floating-timer" id="floating-timer">
+    <div class="timer-header">
+      <span style="font-size:12px; color:var(--text2); text-transform:uppercase; font-weight:bold;">Descanso</span>
+      <button class="btn-ghost" style="border:none; padding:2px; font-size:16px;" onclick="closeTimer()">&times;</button>
+    </div>
+    <div class="timer-display" id="timer-display">00:00</div>
+    <div class="timer-controls">
+      <button class="btn-ghost" style="padding:4px 12px;" onclick="addTimerTime(15)">+15s</button>
+      <button class="btn-primary" style="padding:4px 12px;" id="timer-action-btn" onclick="toggleTimer()">Pausar</button>
+    </div>
+  </div>
 
-  <!-- Modal Novo Plano -->
   <div class="modal-overlay" id="modal-plano">
     <div class="modal">
       <div class="modal-header">
@@ -169,7 +198,6 @@
     </div>
   </div>
 
-  <!-- Modal Exercício -->
   <div class="modal-overlay" id="modal-exercicio">
     <div class="modal modal-sm">
       <div class="modal-header">
@@ -212,7 +240,6 @@
     </div>
   </div>
 
-  <!-- Modal Refeição -->
   <div class="modal-overlay" id="modal-refeicao">
     <div class="modal">
       <div class="modal-header">
@@ -235,11 +262,10 @@
     </div>
   </div>
 
-  <!-- Modal Meta Calórica -->
   <div class="modal-overlay" id="modal-meta">
     <div class="modal modal-sm">
       <div class="modal-header">
-        <h2>Meta Calórica</h2>
+        <h2>Meta Manual</h2>
         <button class="modal-close" data-close="modal-meta">&times;</button>
       </div>
       <div class="modal-body">
@@ -259,7 +285,78 @@
     </div>
   </div>
 
-  <!-- Modal Registrar Treino -->
+  <div class="modal-overlay" id="modal-calc-macros">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>Calculadora de Macros</h2>
+        <button class="modal-close" data-close="modal-calc-macros">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="row-3">
+          <div><label>Gênero</label><select id="calc-gen"><option value="M">M</option><option value="F">F</option></select></div>
+          <div><label>Peso (kg)</label><input type="number" id="calc-peso" placeholder="80"/></div>
+          <div><label>Idade</label><input type="number" id="calc-idade" placeholder="25"/></div>
+        </div>
+        <label>Altura (cm)</label>
+        <input type="number" id="calc-altura" placeholder="175"/>
+        <label>Nível de Atividade</label>
+        <select id="calc-ativ">
+          <option value="1.2">Sedentário</option>
+          <option value="1.375">Leve (1-3x semana)</option>
+          <option value="1.55" selected>Moderado (3-5x semana)</option>
+          <option value="1.725">Intenso (6-7x semana)</option>
+        </select>
+        <label>Objetivo</label>
+        <select id="calc-obj">
+          <option value="-500">Perder Peso (Déficit)</option>
+          <option value="0" selected>Manter Peso</option>
+          <option value="300">Ganhar Massa (Superávit)</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" data-close="modal-calc-macros">Cancelar</button>
+        <button class="btn-primary" id="btn-calcular-salvar-macros">Calcular e Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-peso">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>Registrar Peso</h2>
+        <button class="modal-close" data-close="modal-peso">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>Seu peso hoje (kg)</label>
+        <input type="number" step="0.1" id="input-peso-hoje" placeholder="Ex: 80.5"/>
+        <label>Data</label>
+        <input type="date" id="input-data-peso"/>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" data-close="modal-peso">Cancelar</button>
+        <button class="btn-primary" id="btn-salvar-peso">Salvar Evolução</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-meta-agua">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>Meta de Hidratação</h2>
+        <button class="modal-close" data-close="modal-meta-agua">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>Meta diária (ml)</label>
+        <input type="number" id="input-meta-agua" placeholder="Ex: 3000"/>
+        <p style="font-size: 12px; color: var(--text3); margin-top: 8px;">Recomendação: ~35ml por kg de peso corporal.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" data-close="modal-meta-agua">Cancelar</button>
+        <button class="btn-primary" id="btn-salvar-meta-agua">Salvar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="modal-registrar">
     <div class="modal modal-sm">
       <div class="modal-header">
@@ -283,7 +380,6 @@
     </div>
   </div>
 
-  <!-- Confirm Delete -->
   <div class="modal-overlay" id="modal-confirm">
     <div class="modal modal-sm">
       <div class="modal-header">
