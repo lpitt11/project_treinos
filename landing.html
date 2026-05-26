@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FitCore — Transforme seu Corpo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* Variáveis do Tema (Iguais ao App) */
+    :root {
+      --bg: #0d0d0f;
+      --bg2: #151518;
+      --border: #2a2a35;
+      --accent: #c8f135;
+      --text: #f0f0f0;
+      --text2: #9090a0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      line-height: 1.6;
+    }
+
+    h1, h2, h3 {
+      font-family: 'Bebas Neue', sans-serif;
+      letter-spacing: 1px;
+      font-weight: normal;
+    }
+
+    /* Cabeçalho */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 5%;
+      border-bottom: 1px solid var(--border);
+      background-color: var(--bg2);
+    }
+
+    .logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 32px;
+      color: var(--accent);
+      letter-spacing: 2px;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0d0d0f;
+      padding: 12px 28px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      opacity: 0.9;
+    }
+
+    /* Seção Hero (Principal) */
+    .hero {
+      text-align: center;
+      padding: 120px 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .hero h1 {
+      font-size: 64px;
+      line-height: 1.1;
+      margin-bottom: 24px;
+    }
+
+    .hero h1 span {
+      color: var(--accent);
+    }
+
+    .hero p {
+      font-size: 20px;
+      color: var(--text2);
+      margin-bottom: 40px;
+    }
+
+    /* Funcionalidades */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      padding: 60px 5%;
+      background-color: var(--bg2);
+    }
+
+    .feature-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 40px 30px;
+      border-radius: 16px;
+      text-align: center;
+      transition: border-color 0.3s;
+    }
+
+    .feature-card:hover {
+      border-color: var(--accent);
+    }
+
+    .feature-card .icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .feature-card h3 {
+      font-size: 28px;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+
+    .feature-card p {
+      color: var(--text2);
+      font-size: 16px;
+    }
+
+    /* Rodapé */
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text2);
+      font-size: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Responsivo */
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 48px; }
+      .hero p { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">FITCORE</div>
+    <a href="index.html" class="btn-primary">Entrar no App</a>
+  </header>
+
+  <section class="hero">
+    <h1>O seu aplicativo definitivo de <span>Treino e Dieta</span></h1>
+    <p>Acompanhe suas cargas, calcule seus macros, bata sua meta de água e veja sua evolução corporal em um só lugar. Simples, rápido e direto ao ponto.</p>
+    <a href="index.html" class="btn-primary" style="font-size: 18px; padding: 16px 36px;">Começar Agora Gratuitamente</a>
+  </section>
+
+  <section class="features">
+    <div class="feature-card">
+      <div class="icon">💪</div>
+      <h3>Fichas Inteligentes</h3>
+      <p>Monte seus planos A/B/C, registre as cargas de cada exercício e use o cronômetro integrado para não perder o tempo de descanso.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🥗</div>
+      <h3>Dieta sob Medida</h3>
+      <p>Calculadora de TMB integrada. Descubra exatamente quanto de Proteína, Carboidrato e Gordura você precisa para atingir seu objetivo.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">📈</div>
+      <h3>Evolução Real</h3>
+      <p>Acompanhe seu peso através de gráficos visuais limpos e registre seu histórico de treinos para nunca perder a motivação.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>&copy; 2026 FitCore App. Transformando vidas e corpos.</p>
+  </footer>
+
+</body>
+</html>
