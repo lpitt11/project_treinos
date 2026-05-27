@@ -27,15 +27,20 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
   window.location.href = 'landing.html';
 });
 
-// ===== PERSISTENCE =====
+// ===== PERSISTENCE COM SUPABASE (USANDO UPDATE SEGURO) =====
 async function save() {
   if (!currentUserId) return;
+  
+  // Usamos UPDATE puro focado no ID do usuário. Muito mais seguro contra bloqueios de RLS.
   const { error } = await supaClient
     .from('user_state')
     .update({ app_state: state })
     .eq('user_id', currentUserId);
   
-  if (error) console.error("Erro ao salvar dados: ", error);
+  if (error) {
+    console.error("Erro ao salvar dados: ", error);
+    alert("Houve um bloqueio ao salvar os dados no Supabase: " + error.message);
+  }
 }
 
 async function load() {
@@ -48,16 +53,21 @@ async function load() {
   
   currentUserId = session.user.id;
   
+  // maybeSingle() previne que a tela quebre caso seja literalmente o segundo zero da criação da conta
   const { data, error } = await supaClient
     .from('user_state')
     .select('app_state')
     .eq('user_id', currentUserId)
-    .single();
+    .maybeSingle();
+
+  if (error) console.error("Erro no load: ", error);
 
   if (data && data.app_state) {
     Object.assign(state, data.app_state);
-  } else if (!data) {
-    await supaClient.from('user_state').insert([{ user_id: currentUserId, app_state: state }]);
+  } else {
+    // Se a linha não existe no banco, criamos à força
+    const { error: insErr } = await supaClient.from('user_state').insert([{ user_id: currentUserId, app_state: state }]);
+    if (insErr) console.error("Erro ao criar linha base: ", insErr);
   }
 }
 
@@ -103,7 +113,8 @@ document.querySelectorAll('[data-close]').forEach(btn => {
 
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
   overlay.addEventListener('click', e => {
-    if (e.target === overlay) {
+    // Proíbe fechar clicando fora SE for o modal de onboarding
+    if (e.target === overlay && overlay.id !== 'modal-onboarding') {
       closeModal(overlay.id);
       if(overlay.id === 'modal-executar' && workoutTimerInterval && !isWorkoutRunning) {
         clearInterval(workoutTimerInterval);
@@ -1045,6 +1056,50 @@ function escHtml(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ===== SALVAR ONBOARDING INICIAL =====
+document.getElementById('btn-salvar-onboarding').addEventListener('click', async () => {
+  const nomeVal = document.getElementById('onb-nome').value.trim();
+  const idadeVal = document.getElementById('onb-idade').value;
+  const pesoVal = document.getElementById('onb-peso').value;
+  const objVal = document.getElementById('onb-objetivo').value;
+  
+  if(!nomeVal || !idadeVal || !pesoVal) {
+    alert('Preencha seu nome, idade e peso para continuar.');
+    return;
+  }
+  
+  const btn = document.getElementById('btn-salvar-onboarding');
+  btn.textContent = 'Salvando...';
+  btn.disabled = true;
+
+  // Atualiza o state com os dados da primeira vez
+  state.perfil.nome = nomeVal;
+  state.perfil.idade = idadeVal;
+  state.perfil.peso = pesoVal;
+  state.perfil.objetivo = objVal;
+  
+  // Já insere o peso como o primeiro registro da evolução de peso
+  if(state.pesos.length === 0) {
+      state.pesos.push({ 
+        data: new Date().toISOString().split('T')[0], 
+        peso: parseFloat(pesoVal) 
+      });
+      renderPesoChart();
+  }
+
+  await save(); 
+  
+  if (typeof renderPerfil === 'function') {
+    renderPerfil(); // Atualiza a tela de perfil por trás
+  }
+  
+  closeModal('modal-onboarding');
+  
+  // Reseta o botão para caso precise no futuro
+  btn.textContent = 'Começar Minha Jornada';
+  btn.disabled = false;
+});
+
 // ===== INIT ASSÍNCRONO COM SUPABASE =====
 async function initApp() {
   await load();
@@ -1059,6 +1114,13 @@ async function initApp() {
   renderPesoChart();
   
   if (typeof renderPerfil === 'function') renderPerfil(); 
+  
+  // LÓGICA DO ONBOARDING: Se o perfil não tiver nome, idade OU peso, mostra o quiz.
+  if (!state.perfil.nome || !state.perfil.idade || !state.perfil.peso) {
+     // Pré-preenche o nome caso venha algo do processo de registro da landing page
+     document.getElementById('onb-nome').value = state.perfil.nome || '';
+     openModal('modal-onboarding');
+  }
 }
 
 initApp();

@@ -36,11 +36,12 @@
     <button class="nav-btn" data-tab="historico" title="Histórico">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg>
     </button>
-    <button class="nav-btn" data-tab="perfil" title="Meu Perfil">
+    
+    <button class="nav-btn" data-tab="perfil" title="Meu Perfil" style="margin-top: auto;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7" stroke-linecap="round"/></svg>
     </button>
     
-    <button class="nav-btn" id="btn-theme-toggle" title="Mudar Tema" style="margin-top: auto;">
+    <button class="nav-btn" id="btn-theme-toggle" title="Mudar Tema">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
     </button>
     
@@ -153,7 +154,6 @@
         </div>
         <button class="btn-primary" id="btn-novo-plano">+ Novo Plano</button>
       </div>
-
       <div class="planos-grid" id="planos-grid">
         <div class="empty-state">
           <div class="empty-icon">💪</div>
@@ -162,7 +162,6 @@
       </div>
     </section>
 
-    
     <section class="tab-content" id="tab-cardapios">
       <div class="page-header">
         <div>
@@ -170,9 +169,7 @@
           <p class="page-sub">Visão geral de todas as refeições configuradas na sua Dieta</p>
         </div>
       </div>
-
-      <div id="cardapio-view-container">
-        </div>
+      <div id="cardapio-view-container"></div>
     </section>
 
     <section class="tab-content" id="tab-dieta">
@@ -339,9 +336,7 @@
           </label>
         </div>
         
-        <div id="container-carga-multipla" style="display:none; gap:8px; margin-bottom: 12px; flex-wrap:wrap;">
-          </div>
-
+        <div id="container-carga-multipla" style="display:none; gap:8px; margin-bottom: 12px; flex-wrap:wrap;"></div>
         <label>Descanso (seg)</label>
         <input type="number" id="ex-descanso" min="0" step="15" value="60"/>
         <label>Observações</label>
@@ -500,8 +495,7 @@
         </div>
       </div>
       <div class="modal-body" style="padding: 32px 40px;">
-        <div id="exec-exercicios-list" style="display: flex; flex-direction: column; gap: 24px;">
-          </div>
+        <div id="exec-exercicios-list" style="display: flex; flex-direction: column; gap: 24px;"></div>
       </div>
       <div class="modal-footer" style="padding: 24px 40px; justify-content: space-between;">
         <button class="btn-ghost" data-close="modal-executar">Sair do Treino</button>
@@ -512,6 +506,7 @@
       </div>
     </div>
   </div>
+  
   <div class="modal-overlay" id="modal-cardapio">
     <div class="modal">
       <div class="modal-header">
@@ -575,6 +570,43 @@
       <div class="modal-footer">
         <button class="btn-ghost" data-close="modal-refeicao-cardapio">Cancelar</button>
         <button class="btn-primary" id="btn-salvar-refeicao-cardapio">Adicionar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-onboarding" style="z-index: 9999; backdrop-filter: blur(10px);">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 style="color: var(--accent);">Bem-vindo ao FitCore! 🚀</h2>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text2); font-size: 14px; margin-bottom: 8px;">Para personalizar a sua experiência, preencha rapidamente os seus dados base para montarmos o seu perfil:</p>
+        
+        <div style="margin-bottom: 8px;">
+          <label>Como quer ser chamado?</label>
+          <input type="text" id="onb-nome" placeholder="Seu Nome" />
+        </div>
+
+        <div class="row-3" style="grid-template-columns: 1fr 1fr; margin-bottom: 8px;">
+          <div>
+            <label>Idade</label>
+            <input type="number" id="onb-idade" placeholder="Ex: 25" />
+          </div>
+          <div>
+            <label>Peso atual (kg)</label>
+            <input type="number" id="onb-peso" placeholder="Ex: 80" />
+          </div>
+        </div>
+        
+        <label style="margin-top: 12px;">Qual é o seu principal objetivo?</label>
+        <select id="onb-objetivo">
+          <option value="hipertrofia">Hipertrofia (Ganho de Massa)</option>
+          <option value="emagrecimento">Emagrecimento (Perda de Gordura)</option>
+          <option value="manutencao">Manutenção / Qualidade de Vida</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" id="btn-salvar-onboarding">Começar Minha Jornada</button>
       </div>
     </div>
   </div>
