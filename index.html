@@ -59,10 +59,20 @@
   <main class="main">
 
     <section class="tab-content active" id="tab-dashboard">
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">Dashboard</h1>
-          <p class="page-sub" id="dashboard-date"></p>
+      
+      <div class="page-header" style="flex-direction: column; align-items: stretch; gap: 24px; margin-bottom: 32px;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <img id="dashboard-user-foto" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239090a0'><circle cx='12' cy='8' r='4'/><path d='M4 20c0-4 4-7 8-7s8 3 8 7'/></svg>" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); background: var(--bg3);">
+          <div>
+            <h1 class="page-title" id="dashboard-welcome" style="font-size: 36px; line-height: 1.1;">Bem-vindo(a)</h1>
+            <p class="page-sub" id="dashboard-date" style="margin-top: 2px;"></p>
+          </div>
+        </div>
+        
+        <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px;">
+          <p style="font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.8px;">Sua Constância na Semana</p>
+          <div id="weekly-calendar" style="display: flex; justify-content: space-between; gap: 8px;">
+             </div>
         </div>
       </div>
 

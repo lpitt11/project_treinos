@@ -27,11 +27,9 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
   window.location.href = 'landing.html';
 });
 
-// ===== PERSISTENCE COM SUPABASE (USANDO UPDATE SEGURO) =====
+// ===== PERSISTENCE COM SUPABASE =====
 async function save() {
   if (!currentUserId) return;
-  
-  // Usamos UPDATE puro focado no ID do usuário. Muito mais seguro contra bloqueios de RLS.
   const { error } = await supaClient
     .from('user_state')
     .update({ app_state: state })
@@ -53,7 +51,6 @@ async function load() {
   
   currentUserId = session.user.id;
   
-  // maybeSingle() previne que a tela quebre caso seja literalmente o segundo zero da criação da conta
   const { data, error } = await supaClient
     .from('user_state')
     .select('app_state')
@@ -65,7 +62,6 @@ async function load() {
   if (data && data.app_state) {
     Object.assign(state, data.app_state);
   } else {
-    // Se a linha não existe no banco, criamos à força
     const { error: insErr } = await supaClient.from('user_state').insert([{ user_id: currentUserId, app_state: state }]);
     if (insErr) console.error("Erro ao criar linha base: ", insErr);
   }
@@ -77,7 +73,7 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 // ===== NAVIGATION =====
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    // Ignora botões que não são de abas (ex: trocar tema, logout)
+    // Ignora botões que não são de abas
     if (!btn.dataset.tab) return; 
 
     document.querySelectorAll('.nav-btn').forEach(b => {
@@ -104,7 +100,6 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 document.querySelectorAll('[data-close]').forEach(btn => {
   btn.addEventListener('click', () => {
     closeModal(btn.dataset.close);
-    // Limpar o cronômetro do treino APENAS se o treino NÃO estiver rodando ativamente
     if(btn.dataset.close === 'modal-executar' && workoutTimerInterval && !isWorkoutRunning) {
       clearInterval(workoutTimerInterval);
     }
@@ -113,7 +108,6 @@ document.querySelectorAll('[data-close]').forEach(btn => {
 
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
   overlay.addEventListener('click', e => {
-    // Proíbe fechar clicando fora SE for o modal de onboarding
     if (e.target === overlay && overlay.id !== 'modal-onboarding') {
       closeModal(overlay.id);
       if(overlay.id === 'modal-executar' && workoutTimerInterval && !isWorkoutRunning) {
@@ -135,12 +129,78 @@ document.getElementById('btn-confirm-delete').addEventListener('click', () => {
   closeModal('modal-confirm');
 });
 
-// ===== DASHBOARD =====
+// ===== DASHBOARD (ATUALIZADO COM BOAS-VINDAS E CALENDÁRIO) =====
 function updateDashboard() {
   const hoje = new Date();
+  
+  // Exibe a Data por extenso
   document.getElementById('dashboard-date').textContent =
     hoje.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
+  // Nome e Foto no Cabeçalho
+  const primeiroNome = state.perfil.nome ? state.perfil.nome.split(' ')[0] : 'Atleta';
+  document.getElementById('dashboard-welcome').textContent = `Bem-vindo(a), ${primeiroNome}!`;
+  
+  if (state.perfil.foto) {
+    document.getElementById('dashboard-user-foto').src = state.perfil.foto;
+  } else {
+    // Foto padrão caso não tenha
+    document.getElementById('dashboard-user-foto').src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239090a0'><circle cx='12' cy='8' r='4'/><path d='M4 20c0-4 4-7 8-7s8 3 8 7'/></svg>";
+  }
+
+  // Lógica do Calendário Semanal
+  const calendarContainer = document.getElementById('weekly-calendar');
+  if (calendarContainer) {
+    // Formata a data para comparar com precisão (YYYY-MM-DD local)
+    const getLocalYYYYMMDD = (d) => `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
+    
+    const currentDayOfWeek = hoje.getDay(); // 0 = Domingo, 6 = Sábado
+    const startOfWeek = new Date(hoje);
+    startOfWeek.setDate(hoje.getDate() - currentDayOfWeek); // Volta para Domingo
+    
+    const diasAbrev = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+    let calendarHTML = '';
+    const hojeStr = getLocalYYYYMMDD(hoje);
+    
+    for(let i = 0; i < 7; i++) {
+        const dayDate = new Date(startOfWeek);
+        dayDate.setDate(startOfWeek.getDate() + i);
+        const dateStr = getLocalYYYYMMDD(dayDate);
+        
+        // Verifica se há algum treino no histórico para esse dia exato
+        const trained = state.historico.some(h => h.data === dateStr);
+        const isToday = dateStr === hojeStr;
+        
+        let bg = 'var(--bg3)';
+        let border = '1px solid var(--border)';
+        let color = 'var(--text2)';
+        let content = diasAbrev[i];
+        
+        // Se treinou, a bolinha fica destacada com verde
+        if(trained) {
+            bg = 'var(--accent)';
+            border = '1px solid var(--accent)';
+            color = '#0d0d0f';
+            content = '✓';
+        } else if (isToday) {
+            // Apenas se for hoje, mas não treinou, dá uma borda levemente diferente
+            border = '1px solid var(--accent)';
+            color = 'var(--text)';
+        }
+
+        calendarHTML += `
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1;">
+            <div style="width: 34px; height: 34px; border-radius: 50%; background: ${bg}; border: ${border}; color: ${color}; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; transition: all 0.2s;">
+              ${content}
+            </div>
+            <span style="font-size: 10px; color: var(--text3);">${dayDate.getDate().toString().padStart(2,'0')}/${(dayDate.getMonth()+1).toString().padStart(2,'0')}</span>
+          </div>
+        `;
+    }
+    calendarContainer.innerHTML = calendarHTML;
+  }
+
+  // Estatísticas normais
   const mesAtual = hoje.getMonth();
   const anoAtual = hoje.getFullYear();
   const treinosMes = state.historico.filter(h => {
@@ -1090,12 +1150,14 @@ document.getElementById('btn-salvar-onboarding').addEventListener('click', async
   await save(); 
   
   if (typeof renderPerfil === 'function') {
-    renderPerfil(); // Atualiza a tela de perfil por trás
+    renderPerfil(); 
   }
+  
+  // Atualiza instantaneamente a tela inicial para mostrar o nome da pessoa
+  updateDashboard();
   
   closeModal('modal-onboarding');
   
-  // Reseta o botão para caso precise no futuro
   btn.textContent = 'Começar Minha Jornada';
   btn.disabled = false;
 });
@@ -1117,7 +1179,6 @@ async function initApp() {
   
   // LÓGICA DO ONBOARDING: Se o perfil não tiver nome, idade OU peso, mostra o quiz.
   if (!state.perfil.nome || !state.perfil.idade || !state.perfil.peso) {
-     // Pré-preenche o nome caso venha algo do processo de registro da landing page
      document.getElementById('onb-nome').value = state.perfil.nome || '';
      openModal('modal-onboarding');
   }
