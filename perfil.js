@@ -12,7 +12,7 @@ function renderPerfil() {
   }
 }
 
-// Converter imagem para Base64 para salvar no LocalStorage
+// Converter imagem para Base64 para salvar no banco
 document.getElementById('perfil-foto-input').addEventListener('change', function(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -26,16 +26,13 @@ document.getElementById('perfil-foto-input').addEventListener('change', function
 });
 
 // Salvar Perfil
-document.getElementById('btn-salvar-perfil').addEventListener('click', () => {
+document.getElementById('btn-salvar-perfil').addEventListener('click', async () => {
   state.perfil.nome = document.getElementById('perfil-nome').value.trim();
   state.perfil.idade = document.getElementById('perfil-idade').value;
   state.perfil.peso = document.getElementById('perfil-peso').value;
   state.perfil.altura = document.getElementById('perfil-altura').value;
   state.perfil.objetivo = document.getElementById('perfil-objetivo').value;
   
-  save(); // Chama o salvamento centralizado do app.js
+  await save(); // Chama o salvamento centralizado (agora assíncrono)
   alert('Perfil atualizado com sucesso! 💪');
 });
-
-// Inicializa a renderização dos dados do perfil
-renderPerfil();

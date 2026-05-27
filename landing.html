@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <style>
   :root {
@@ -341,7 +342,7 @@
           <label>Senha</label>
           <input type="password" placeholder="••••••••" id="login-senha"/>
         </div>
-        <button class="btn-primary" style="margin-top: 8px;" onclick="executarLogin()">Acessar App</button>
+        <button class="btn-primary" style="margin-top: 8px;" id="btn-login" onclick="executarLogin()">Acessar App</button>
       </div>
 
       <div class="auth-form" id="form-register">
@@ -357,7 +358,7 @@
           <label>Senha</label>
           <input type="password" placeholder="Mínimo 6 caracteres" id="reg-senha"/>
         </div>
-        <button class="btn-primary" style="margin-top: 8px;" onclick="executarRegistro()">Concluir Cadastro</button>
+        <button class="btn-primary" style="margin-top: 8px;" id="btn-register" onclick="executarRegistro()">Concluir Cadastro</button>
       </div>
     </div>
   </div>
@@ -366,7 +367,14 @@
     <p>&copy; 2026 FitCore App. Engenharia aplicada ao corpo.</p>
   </footer>
 
+  <script src="supabase-config.js"></script>
   <script>
+    // Verifica se já está logado e manda pro app
+    window.addEventListener('DOMContentLoaded', async () => {
+      const { data: { session } } = await supaClient.auth.getSession();
+      if (session) { window.location.href = 'index.html'; }
+    });
+
     const overlay = document.getElementById('auth-overlay');
     
     function abrirAuth(tipo) {
@@ -386,30 +394,66 @@
       document.getElementById(`form-${tipo}`).classList.add('active');
     }
 
-    // Ação de Criar Conta Integrada com o Banco Local (LocalStorage)
-    function executarRegistro() {
+    // Ação de Criar Conta Integrada com Supabase
+    async function executarRegistro() {
       const nomeVal = document.getElementById('reg-nome').value.trim();
-      if(!nomeVal) { alert('Por favor, insira o seu nome.'); return; }
+      const emailVal = document.getElementById('reg-email').value.trim();
+      const senhaVal = document.getElementById('reg-senha').value;
+
+      if(!nomeVal || !emailVal || !senhaVal) { alert('Por favor, preencha todos os campos.'); return; }
       
+      document.getElementById('btn-register').textContent = 'Carregando...';
+
+      const { data, error } = await supaClient.auth.signUp({
+        email: emailVal,
+        password: senhaVal,
+      });
+
+      if (error) {
+        alert("Erro no cadastro: " + error.message);
+        document.getElementById('btn-register').textContent = 'Concluir Cadastro';
+        return;
+      }
+
       // Cria a estrutura padrão de perfil do FitCore e injeta o nome escolhido
-      const perfilMock = {
-        nome: nomeVal,
-        foto: '',
-        idade: '',
-        peso: '',
-        altura: '',
-        objetivo: 'hipertrofia'
+      const initialState = {
+        tema: 'dark',
+        perfil: { nome: nomeVal, foto: '', idade: '', peso: '', altura: '', objetivo: 'hipertrofia' },
+        planos: [], cardapios: [], historico: [],
+        dieta: { meta: { cal: 0, prot: 0, carb: 0, gord: 0 }, refeicoes: [] },
+        agua: { data: '', ml: 0, meta: 3000 }, pesos: []
       };
       
-      // Salva no LocalStorage simulando o banco do app
-      localStorage.setItem('fitcore_perfil', JSON.stringify(perfilMock));
+      if(data.user) {
+         await supaClient.from('user_state').insert([{ 
+           user_id: data.user.id, 
+           app_state: initialState 
+         }]);
+      }
       
-      // Envia o usuário direto para o App já configurado
       window.location.href = 'index.html';
     }
 
-    function executarLogin() {
-      // Simulação profissional de Login, direciona direto para o painel
+    // Login com Supabase
+    async function executarLogin() {
+      const emailVal = document.getElementById('login-email').value.trim();
+      const senhaVal = document.getElementById('login-senha').value;
+
+      if(!emailVal || !senhaVal) { alert('Preencha todos os campos.'); return; }
+
+      document.getElementById('btn-login').textContent = 'Entrando...';
+
+      const { data, error } = await supaClient.auth.signInWithPassword({
+        email: emailVal,
+        password: senhaVal,
+      });
+
+      if (error) {
+        alert("Erro ao entrar: E-mail ou senha incorretos.");
+        document.getElementById('btn-login').textContent = 'Acessar App';
+        return;
+      }
+
       window.location.href = 'index.html';
     }
   </script>
@@ -529,4 +573,4 @@
     window.onload = init3D;
   </script>
 </body>
-</html>   
+</html>

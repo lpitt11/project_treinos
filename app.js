@@ -19,29 +19,46 @@ const state = {
   confirmCallback: null,
 };
 
+let currentUserId = null;
+
+// ===== AUTENTICAÇÃO / LOGOUT =====
+document.getElementById('btn-logout').addEventListener('click', async () => {
+  await supaClient.auth.signOut();
+  window.location.href = 'landing.html';
+});
+
 // ===== PERSISTENCE =====
-function save() {
-  localStorage.setItem('fitcore_tema', state.tema);
-  localStorage.setItem('fitcore_perfil', JSON.stringify(state.perfil));
-  localStorage.setItem('fitcore_planos', JSON.stringify(state.planos));
-  localStorage.setItem('fitcore_cardapios', JSON.stringify(state.cardapios));
-  localStorage.setItem('fitcore_historico', JSON.stringify(state.historico));
-  localStorage.setItem('fitcore_dieta', JSON.stringify(state.dieta));
-  localStorage.setItem('fitcore_agua', JSON.stringify(state.agua));
-  localStorage.setItem('fitcore_pesos', JSON.stringify(state.pesos));
+async function save() {
+  if (!currentUserId) return;
+  const { error } = await supaClient
+    .from('user_state')
+    .update({ app_state: state })
+    .eq('user_id', currentUserId);
+  
+  if (error) console.error("Erro ao salvar dados: ", error);
 }
 
-function load() {
-  try {
-    state.tema = localStorage.getItem('fitcore_tema') || 'dark';
-    state.perfil = JSON.parse(localStorage.getItem('fitcore_perfil')) || { nome: '', foto: '', idade: '', peso: '', altura: '', objetivo: 'hipertrofia' };
-    state.planos = JSON.parse(localStorage.getItem('fitcore_planos')) || [];
-    state.cardapios = JSON.parse(localStorage.getItem('fitcore_cardapios')) || [];
-    state.historico = JSON.parse(localStorage.getItem('fitcore_historico')) || [];
-    state.dieta = JSON.parse(localStorage.getItem('fitcore_dieta')) || { meta: { cal: 0, prot: 0, carb: 0, gord: 0 }, refeicoes: [] };
-    state.agua = JSON.parse(localStorage.getItem('fitcore_agua')) || { data: '', ml: 0, meta: 3000 };
-    state.pesos = JSON.parse(localStorage.getItem('fitcore_pesos')) || [];
-  } catch { /* ignore */ }
+async function load() {
+  const { data: { session }, error: authError } = await supaClient.auth.getSession();
+  
+  if (authError || !session) {
+    window.location.href = 'landing.html';
+    return;
+  }
+  
+  currentUserId = session.user.id;
+  
+  const { data, error } = await supaClient
+    .from('user_state')
+    .select('app_state')
+    .eq('user_id', currentUserId)
+    .single();
+
+  if (data && data.app_state) {
+    Object.assign(state, data.app_state);
+  } else if (!data) {
+    await supaClient.from('user_state').insert([{ user_id: currentUserId, app_state: state }]);
+  }
 }
 
 // ===== ID GENERATOR =====
@@ -50,7 +67,7 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 // ===== NAVIGATION =====
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    // Ignora botões que não são de abas (ex: trocar tema)
+    // Ignora botões que não são de abas (ex: trocar tema, logout)
     if (!btn.dataset.tab) return; 
 
     document.querySelectorAll('.nav-btn').forEach(b => {
@@ -1028,13 +1045,20 @@ function escHtml(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ===== INIT =====
-load();
-document.getElementById('input-data-peso').value = new Date().toISOString().split('T')[0];
-updateDashboard();
-renderPlanos();
-renderExecutar();
-renderCardapios();
-renderDieta();
-renderHistorico();
-renderPesoChart();
+// ===== INIT ASSÍNCRONO COM SUPABASE =====
+async function initApp() {
+  await load();
+  document.getElementById('input-data-peso').value = new Date().toISOString().split('T')[0];
+  
+  updateDashboard();
+  renderPlanos();
+  renderExecutar();
+  renderCardapios();
+  renderDieta();
+  renderHistorico();
+  renderPesoChart();
+  
+  if (typeof renderPerfil === 'function') renderPerfil(); 
+}
+
+initApp();
