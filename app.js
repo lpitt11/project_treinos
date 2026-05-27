@@ -3,16 +3,20 @@ const state = {
   tema: 'dark',
   perfil: { nome: '', foto: '', idade: '', peso: '', altura: '', objetivo: 'hipertrofia' },
   planos: [],
+  cardapios: [],
   historico: [],
   dieta: { meta: { cal: 0, prot: 0, carb: 0, gord: 0 }, refeicoes: [] },
   agua: { data: '', ml: 0, meta: 3000 },
   pesos: [], // Historico de pesos
   editingPlanoId: null,
+  editingCardapioId: null,
   editingRefeicaoId: null,
   tempExercicios: [],   
+  tempRefeicoesCardapio: [],
   tempAlimentos: [],    
   editingExercicioIdx: null,
-  confirmCallback: null,  
+  editingRefeicaoCardapioIdx: null,
+  confirmCallback: null,
 };
 
 // ===== PERSISTENCE =====
@@ -20,16 +24,19 @@ function save() {
   localStorage.setItem('fitcore_tema', state.tema);
   localStorage.setItem('fitcore_perfil', JSON.stringify(state.perfil));
   localStorage.setItem('fitcore_planos', JSON.stringify(state.planos));
+  localStorage.setItem('fitcore_cardapios', JSON.stringify(state.cardapios));
   localStorage.setItem('fitcore_historico', JSON.stringify(state.historico));
   localStorage.setItem('fitcore_dieta', JSON.stringify(state.dieta));
   localStorage.setItem('fitcore_agua', JSON.stringify(state.agua));
   localStorage.setItem('fitcore_pesos', JSON.stringify(state.pesos));
 }
+
 function load() {
   try {
     state.tema = localStorage.getItem('fitcore_tema') || 'dark';
     state.perfil = JSON.parse(localStorage.getItem('fitcore_perfil')) || { nome: '', foto: '', idade: '', peso: '', altura: '', objetivo: 'hipertrofia' };
     state.planos = JSON.parse(localStorage.getItem('fitcore_planos')) || [];
+    state.cardapios = JSON.parse(localStorage.getItem('fitcore_cardapios')) || [];
     state.historico = JSON.parse(localStorage.getItem('fitcore_historico')) || [];
     state.dieta = JSON.parse(localStorage.getItem('fitcore_dieta')) || { meta: { cal: 0, prot: 0, carb: 0, gord: 0 }, refeicoes: [] };
     state.agua = JSON.parse(localStorage.getItem('fitcore_agua')) || { data: '', ml: 0, meta: 3000 };
@@ -43,11 +50,10 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 // ===== NAVIGATION =====
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    // SE O BOTÃO NÃO TIVER O ATRIBUTO DE ABA (COMO O DE TEMAS), IGNORA A TROCA DE TELA
+    // Ignora botões que não são de abas (ex: trocar tema)
     if (!btn.dataset.tab) return; 
 
     document.querySelectorAll('.nav-btn').forEach(b => {
-      // Remove o active apenas dos botões que são de abas
       if (b.dataset.tab) b.classList.remove('active');
     });
     
@@ -58,6 +64,8 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     if(btn.dataset.tab === 'dashboard') {
       updateDashboard();
       renderPesoChart();
+    } else if(btn.dataset.tab === 'cardapios') {
+      renderCardapios();
     }
   });
 });
@@ -75,11 +83,11 @@ document.querySelectorAll('[data-close]').forEach(btn => {
     }
   });
 });
+
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
   overlay.addEventListener('click', e => {
     if (e.target === overlay) {
       closeModal(overlay.id);
-      // Limpar o cronômetro do treino APENAS se o treino NÃO estiver rodando ativamente
       if(overlay.id === 'modal-executar' && workoutTimerInterval && !isWorkoutRunning) {
         clearInterval(workoutTimerInterval);
       }
@@ -105,7 +113,6 @@ function updateDashboard() {
   document.getElementById('dashboard-date').textContent =
     hoje.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-  // Stats
   const mesAtual = hoje.getMonth();
   const anoAtual = hoje.getFullYear();
   const treinosMes = state.historico.filter(h => {
@@ -118,7 +125,6 @@ function updateDashboard() {
   document.getElementById('stat-planos').textContent = state.planos.length;
   document.getElementById('stat-refeicoes').textContent = state.dieta.refeicoes.length;
 
-  // Próximos treinos (Clicáveis)
   const diasSemana = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
   const diaHoje = diasSemana[hoje.getDay()];
   const ul = document.getElementById('proximos-treinos');
@@ -138,7 +144,6 @@ function updateDashboard() {
     `).join('');
   }
 
-  // Histórico recente
   const ulH = document.getElementById('historico-recente');
   const recentes = [...state.historico].reverse().slice(0, 4);
   if (recentes.length === 0) {
@@ -160,7 +165,7 @@ function checkWaterDay() {
   const hojeStr = new Date().toISOString().split('T')[0];
   if(state.agua.data !== hojeStr) {
     state.agua.data = hojeStr;
-    state.agua.ml = 0; // zera pro novo dia
+    state.agua.ml = 0; 
     save();
   }
 }
@@ -203,7 +208,6 @@ function renderPesoChart() {
   
   if(pesoChartInst) pesoChartInst.destroy();
   
-  // Verifica se o tema é claro para mudar a cor da grade do gráfico
   const isLight = state.tema === 'light';
   const gridColor = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
   const tickColor = isLight ? '#52525b' : '#9090a0';
@@ -249,7 +253,7 @@ document.getElementById('btn-salvar-peso').addEventListener('click', () => {
   renderPesoChart();
 });
 
-// ===== MÓDULO: CRONÔMETRO DE DESCANSO =====
+// ===== MÓDULO: CRONÔMETRO DE DESCANSO (SEGUNDO PLANO) =====
 let timerInterval;
 let timerEndTime = 0;
 let timerRemaining = 0;
@@ -333,7 +337,7 @@ document.getElementById('btn-novo-plano').addEventListener('click', () => {
   state.tempExercicios = [];
   document.getElementById('plano-nome').value = '';
   document.getElementById('modal-plano-title').textContent = 'Novo Plano de Treino';
-  document.querySelectorAll('.dia-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.dia-btn:not(.c-dia-btn)').forEach(b => b.classList.remove('selected'));
   renderExerciciosEdit();
   openModal('modal-plano');
 });
@@ -341,7 +345,7 @@ document.getElementById('btn-novo-plano').addEventListener('click', () => {
 document.getElementById('btn-salvar-plano').addEventListener('click', () => {
   const nome = document.getElementById('plano-nome').value.trim();
   if (!nome) { alert('Digite um nome para o plano.'); return; }
-  const dias = [...document.querySelectorAll('.dia-btn.selected')].map(b => b.dataset.dia);
+  const dias = [...document.querySelectorAll('#dias-selector .dia-btn.selected')].map(b => b.dataset.dia);
 
   if (state.editingPlanoId) {
     const idx = state.planos.findIndex(p => p.id === state.editingPlanoId);
@@ -360,7 +364,7 @@ document.getElementById('btn-salvar-plano').addEventListener('click', () => {
   updateDashboard();
 });
 
-document.querySelectorAll('.dia-btn').forEach(btn => {
+document.querySelectorAll('.dia-btn:not(.c-dia-btn)').forEach(btn => {
   btn.addEventListener('click', () => btn.classList.toggle('selected'));
 });
 
@@ -403,7 +407,7 @@ function editarPlano(id) {
   state.tempExercicios = [...plano.exercicios.map(e => ({...e}))];
   document.getElementById('plano-nome').value = plano.nome;
   document.getElementById('modal-plano-title').textContent = 'Editar Plano';
-  document.querySelectorAll('.dia-btn').forEach(b => {
+  document.querySelectorAll('#dias-selector .dia-btn').forEach(b => {
     b.classList.toggle('selected', plano.dias.includes(b.dataset.dia));
   });
   renderExerciciosEdit();
@@ -803,7 +807,6 @@ function excluirRefeicao(id) {
   });
 }
 
-// RESTANTE DO CÓDIGO DA DIETA E HISTÓRICO PERMANECE INTEGRAL E INALTERADO
 function renderDieta() {
   const meta = state.dieta.meta;
   document.getElementById('meta-cal-display').textContent = meta.cal ? `${meta.cal} kcal` : '— kcal';
@@ -811,6 +814,9 @@ function renderDieta() {
   if (state.dieta.refeicoes.length === 0) {
     lista.innerHTML = `<div class="empty-state"><div class="empty-icon">🥗</div><p>Nenhuma refeição cadastrada.<br>Clique em <b>+ Nova Refeição</b> para começar.</p></div>`;
     return;
+    if (typeof renderCardapios === 'function') {
+    renderCardapios(); 
+}
   }
   const sorted = [...state.dieta.refeicoes].sort((a, b) => a.horario.localeCompare(b.horario));
   lista.innerHTML = sorted.map(ref => {
@@ -911,6 +917,77 @@ document.getElementById('btn-calcular-salvar-macros').addEventListener('click', 
   alert("Sua meta foi calculada e salva com sucesso!");
 });
 
+// ===== MÓDULO: VISUALIZADOR DE CARDÁPIO =====
+function renderCardapios() {
+  const container = document.getElementById('cardapio-view-container');
+  if (!container) return;
+
+  // Se não houver refeições criadas na aba Dieta
+  if (state.dieta.refeicoes.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">🍽️</div><p>O seu cardápio está vazio.<br>Adicione refeições na aba <b>Dieta</b> para que elas apareçam aqui.</p></div>`;
+    return;
+  }
+
+  // Ordena as refeições por horário (do mais cedo pro mais tarde)
+  const sorted = [...state.dieta.refeicoes].sort((a, b) => a.horario.localeCompare(b.horario));
+
+  // Calcula os totais do dia inteiro
+  let totalDiaCal = 0, totalDiaProt = 0, totalDiaCarb = 0;
+
+  sorted.forEach(ref => {
+    ref.alimentos.forEach(al => {
+      totalDiaCal += parseFloat(al.cal) || 0;
+      totalDiaProt += parseFloat(al.prot) || 0;
+      totalDiaCarb += parseFloat(al.carb) || 0;
+    });
+  });
+
+  // Constrói o HTML: Resumo Diário + Linha do Tempo das Refeições
+  let html = `
+    <div style="background: var(--bg2); border: 1px solid var(--accent); border-radius: var(--radius); padding: 24px; margin-bottom: 24px; box-shadow: 0 8px 32px rgba(200, 241, 53, 0.05);">
+      <h3 style="color: var(--accent); margin-bottom: 16px; font-family: var(--font-display); font-size: 24px; letter-spacing: 1px;">Resumo Nutricional do Dia</h3>
+      <div style="display: flex; gap: 32px; flex-wrap: wrap;">
+        <div><span style="color:var(--text2); font-size:12px; text-transform:uppercase; font-weight:bold;">Calorias</span><br><strong style="font-size:24px; color:var(--text);">${totalDiaCal.toFixed(0)} kcal</strong></div>
+        <div><span style="color:var(--text2); font-size:12px; text-transform:uppercase; font-weight:bold;">Proteínas</span><br><strong style="font-size:24px; color:var(--text);">${totalDiaProt.toFixed(1)}g</strong></div>
+        <div><span style="color:var(--text2); font-size:12px; text-transform:uppercase; font-weight:bold;">Carboidratos</span><br><strong style="font-size:24px; color:var(--text);">${totalDiaCarb.toFixed(1)}g</strong></div>
+      </div>
+    </div>
+    
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+  `;
+
+  html += sorted.map(ref => {
+    const totalCalRef = ref.alimentos.reduce((s, a) => s + (parseFloat(a.cal) || 0), 0);
+    return `
+      <div class="card hover-card" style="border-left: 4px solid var(--accent); padding: 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h3 style="font-size: 20px; margin: 0; font-family: var(--font-display); letter-spacing: 1px;">${escHtml(ref.nome)}</h3>
+          <span style="background: rgba(200, 241, 53, 0.1); padding: 6px 12px; border-radius: 8px; font-weight: bold; color: var(--accent); font-size: 14px; display:flex; align-items:center; gap:6px;">
+            ⏱️ ${ref.horario}
+          </span>
+        </div>
+        ${ref.alimentos.length > 0 ? `
+          <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px;">
+            ${ref.alimentos.map(al => `
+              <li style="display:flex; justify-content:space-between; font-size: 15px; border-bottom: 1px dashed var(--border); padding-bottom: 8px;">
+                <span>${escHtml(al.nome)} <span style="color:var(--text2); font-size: 13px;">(${al.qtd})</span></span>
+                <span style="color:var(--text2); font-weight: 500;">${al.cal || 0} kcal</span>
+              </li>
+            `).join('')}
+          </ul>
+          <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 14px; color: var(--text); text-align: right;">
+            Total desta refeição: <strong style="color: var(--accent);">${totalCalRef.toFixed(0)} kcal</strong>
+          </div>
+        ` : `<div style="color:var(--text3);font-size:14px; font-style:italic;">Nenhum alimento cadastrado nesta refeição.</div>`}
+      </div>
+    `;
+  }).join('');
+
+  html += `</div>`;
+  container.innerHTML = html;
+}
+
+// ===== HISTÓRICO =====
 function renderHistorico() {
   const lista = document.getElementById('historico-lista');
   if (state.historico.length === 0) {
@@ -957,6 +1034,7 @@ document.getElementById('input-data-peso').value = new Date().toISOString().spli
 updateDashboard();
 renderPlanos();
 renderExecutar();
+renderCardapios();
 renderDieta();
 renderHistorico();
-renderPesoChart();  
+renderPesoChart();

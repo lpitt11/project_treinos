@@ -14,6 +14,7 @@
 
   <nav class="sidebar">
     <div class="logo">FC</div>
+    
     <button class="nav-btn active" data-tab="dashboard" title="Dashboard">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
     </button>
@@ -23,6 +24,11 @@
     <button class="nav-btn" data-tab="treinos" title="Gerenciar Treinos">
       <svg viewBox="0 0 24 24"><path d="M6.5 6.5h11M6.5 12h11M6.5 17.5h11" stroke-linecap="round"/><circle cx="3.5" cy="6.5" r="1.5"/><circle cx="3.5" cy="12" r="1.5"/><circle cx="3.5" cy="17.5" r="1.5"/></svg>
     </button>
+
+    <button class="nav-btn" data-tab="cardapios" title="Gerenciar Cardápios">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>
+    </button>
+
     <button class="nav-btn" data-tab="dieta" title="Dieta">
       <svg viewBox="0 0 24 24"><path d="M12 2C9 2 6 5 6 9c0 3 2 5.5 4.5 6.5V20h3v-4.5C16 14.5 18 12 18 9c0-4-3-7-6-7z" stroke-linecap="round"/></svg>
     </button>
@@ -32,6 +38,7 @@
     <button class="nav-btn" data-tab="perfil" title="Meu Perfil">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7" stroke-linecap="round"/></svg>
     </button>
+    
     <button class="nav-btn" id="btn-theme-toggle" title="Mudar Tema" style="margin-top: auto;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
     </button>
@@ -148,6 +155,19 @@
           <p>Nenhum plano criado ainda.<br>Clique em <b>+ Novo Plano</b> para começar.</p>
         </div>
       </div>
+    </section>
+
+    
+    <section class="tab-content" id="tab-cardapios">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Cardápio do Dia</h1>
+          <p class="page-sub">Visão geral de todas as refeições configuradas na sua Dieta</p>
+        </div>
+      </div>
+
+      <div id="cardapio-view-container">
+        </div>
     </section>
 
     <section class="tab-content" id="tab-dieta">
@@ -484,6 +504,72 @@
           <button class="btn-primary" id="btn-iniciar-treino" style="font-size: 18px; padding: 12px 32px;" onclick="iniciarTreino()">▶ Iniciar Treino</button>
           <button class="btn-primary" id="btn-concluir-treino" style="font-size: 18px; padding: 12px 32px; display: none;" onclick="concluirTreino()">✓ Concluir Treino</button>
         </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-overlay" id="modal-cardapio">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-cardapio-title">Novo Cardápio</h2>
+        <button class="modal-close" data-close="modal-cardapio">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>Nome do cardápio</label>
+        <input type="text" id="cardapio-nome" placeholder="Ex: Bulk Limpo - Dias de Treino"/>
+        <label>Dias da semana</label>
+        <div class="dias-selector">
+          <button class="dia-btn c-dia-btn" data-dia="Seg">Seg</button>
+          <button class="dia-btn c-dia-btn" data-dia="Ter">Ter</button>
+          <button class="dia-btn c-dia-btn" data-dia="Qua">Qua</button>
+          <button class="dia-btn c-dia-btn" data-dia="Qui">Qui</button>
+          <button class="dia-btn c-dia-btn" data-dia="Sex">Sex</button>
+          <button class="dia-btn c-dia-btn" data-dia="Sáb">Sáb</button>
+          <button class="dia-btn c-dia-btn" data-dia="Dom">Dom</button>
+        </div>
+        <label>Refeições inclusas</label>
+        <div class="exercicios-list-edit" id="cardapio-refeicoes-list-edit"></div>
+        <button class="btn-ghost full-width" id="btn-add-refeicao-cardapio">+ Adicionar refeição</button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" data-close="modal-cardapio">Cancelar</button>
+        <button class="btn-primary" id="btn-salvar-cardapio">Salvar Cardápio</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-refeicao-cardapio">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 id="modal-ref-card-title">Adicionar Refeição</h2>
+        <button class="modal-close" data-close="modal-refeicao-cardapio">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>Nome da refeição</label>
+        <input type="text" id="rc-nome" placeholder="Ex: Café da Manhã Anabólico"/>
+        <label>Horário</label>
+        <input type="time" id="rc-horario" value="08:00"/>
+        
+        <div class="row-3">
+          <div>
+            <label>Kcal</label>
+            <input type="number" id="rc-kcal" placeholder="0"/>
+          </div>
+          <div>
+            <label>Prot (g)</label>
+            <input type="number" id="rc-prot" placeholder="0"/>
+          </div>
+          <div>
+            <label>Carb (g)</label>
+            <input type="number" id="rc-carb" placeholder="0"/>
+          </div>
+        </div>
+        
+        <label>Alimentos / Observações</label>
+        <textarea id="rc-obs" rows="2" placeholder="Ex: 4 ovos cozidos, 60g de aveia, 1 banana..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" data-close="modal-refeicao-cardapio">Cancelar</button>
+        <button class="btn-primary" id="btn-salvar-refeicao-cardapio">Adicionar</button>
       </div>
     </div>
   </div>

@@ -1,176 +1,532 @@
 <!DOCTYPE html>
-<html lang="pt-BR" style="background-color: #0d0d0f;">
+<html lang="pt-BR" style="background-color: #050507;">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0d0d0f"/>
+  <meta name="theme-color" content="#050507"/>
   <meta name="color-scheme" content="dark"/>
-  <title>FitCore — Transforme seu Corpo</title>
+  <title>FitCore — Alta Performance em Treino e Dieta</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #0d0d0f;
-      --bg2: #151518;
-      --border: #2a2a35;
-      --accent: #c8f135;
-      --text: #f0f0f0;
-      --text2: #9090a0;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    
-    body {
-      background-color: var(--bg);
-      color: var(--text);
-      font-family: 'DM Sans', sans-serif;
-      line-height: 1.6;
-    }
-
-    h1, h2, h3 {
-      font-family: 'Bebas Neue', sans-serif;
-      letter-spacing: 1px;
-      font-weight: normal;
-    }
-
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 24px 5%;
-      border-bottom: 1px solid var(--border);
-      background-color: var(--bg2);
-    }
-
-    .logo {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 32px;
-      color: var(--accent);
-      letter-spacing: 2px;
-    }
-
-    .btn-primary {
-      background: var(--accent);
-      color: #0d0d0f;
-      padding: 12px 28px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: bold;
-      transition: transform 0.2s, opacity 0.2s;
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      opacity: 0.9;
-    }
-
-    .hero {
-      text-align: center;
-      padding: 120px 20px;
-      max-width: 800px;
-      margin: 0 auto;
-    }
-
-    .hero h1 {
-      font-size: 64px;
-      line-height: 1.1;
-      margin-bottom: 24px;
-    }
-
-    .hero h1 span {
-      color: var(--accent);
-    }
-
-    .hero p {
-      font-size: 20px;
-      color: var(--text2);
-      margin-bottom: 40px;
-    }
-
-    .features {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 24px;
-      padding: 60px 5%;
-      background-color: var(--bg2);
-    }
-
-    .feature-card {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      padding: 40px 30px;
-      border-radius: 16px;
-      text-align: center;
-      transition: border-color 0.3s;
-    }
-
-    .feature-card:hover {
-      border-color: var(--accent);
-    }
-
-    .feature-card .icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-    }
-
-    .feature-card h3 {
-      font-size: 28px;
-      margin-bottom: 12px;
-      color: var(--text);
-    }
-
-    .feature-card p {
-      color: var(--text2);
-      font-size: 16px;
-    }
-
-    footer {
-      text-align: center;
-      padding: 40px 20px;
-      color: var(--text2);
-      font-size: 14px;
-      border-top: 1px solid var(--border);
-    }
-
-    @media (max-width: 768px) {
-      .hero h1 { font-size: 48px; }
-      .hero p { font-size: 18px; }
-    }
-  </style>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
+<style>
+  :root {
+    --bg: #050507;
+    --bg2: #0c0c0e;
+    --border: #1e1e24;
+    --accent: #c8f135;
+    --text: #f5f5f7;
+    --text2: #8e8e93;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 1px;
+    font-weight: normal;
+  }
+
+  /* Canvas do Motor 3D */
+  #canvas-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* Camada escura de contraste sobre o 3D */
+  .overlay-3d {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: radial-gradient(circle at center, rgba(5,5,7,0.4) 0%, rgba(5,5,7,0.85) 90%);
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  /* Cabeçalho Premium */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 5%;
+    background-color: rgba(5, 5, 7, 0.6);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    position: fixed;
+    top: 0; width: 100%;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--text);
+    letter-spacing: 2px;
+  }
+  .logo span { color: var(--accent); }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .btn-nav-link {
+    background: transparent;
+    border: none;
+    color: var(--text2);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .btn-nav-link:hover { color: var(--text); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    padding: 12px 28px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(200, 241, 53, 0.3);
+  }
+
+  /* Secção Hero Principal */
+  .hero-section {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 120px 20px 60px;
+    z-index: 10;
+    text-align: center;
+  }
+
+  .hero-content {
+    max-width: 800px;
+  }
+
+  .hero-section h1 {
+    font-size: 84px;
+    line-height: 1;
+    margin-bottom: 24px;
+    text-transform: uppercase;
+    text-shadow: 0 4px 24px rgba(0,0,0,0.7);
+  }
+  .hero-section h1 span {
+    color: var(--accent);
+  }
+
+  .hero-section p {
+    font-size: 20px;
+    color: #e5e5ea;
+    margin-bottom: 40px;
+    font-weight: 400;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+  }
+
+  /* Grid de Funcionalidades */
+  .features-section {
+    position: relative;
+    background-color: var(--bg2);
+    border-top: 1px solid var(--border);
+    padding: 100px 5%;
+    z-index: 10;
+  }
+
+  .grid-features {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 32px;
+  }
+
+  .feature-card {
+    background: rgba(5, 5, 7, 0.5);
+    border: 1px solid var(--border);
+    padding: 40px;
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+  }
+  .feature-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-4px);
+    background: rgba(5, 5, 7, 0.8);
+  }
+
+  .feature-card h3 {
+    font-size: 28px;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  .feature-card p {
+    color: var(--text2);
+    font-size: 15px;
+  }
+
+  /* MODAL DE AUTENTICAÇÃO (CRIAR CONTA / ENTRAR) */
+  .auth-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(8px);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .auth-overlay.open { display: flex; }
+
+  .auth-modal {
+    background: #111114;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 400px;
+    padding: 32px;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    animation: modalIn 0.2s ease;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .auth-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    gap: 16px;
+  }
+  .auth-tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text2);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    padding-bottom: 8px;
+    cursor: pointer;
+    position: relative;
+  }
+  .auth-tab-btn.active { color: var(--text); }
+  .auth-tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0; width: 100%; height: 2px;
+    background: var(--accent);
+  }
+
+  .auth-form { display: none; flex-direction: column; gap: 14px; }
+  .auth-form.active { display: flex; }
+
+  .auth-form label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text2);
+  }
+  .auth-form input {
+    width: 100%;
+    background: #1a1a1f;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .auth-form input:focus { border-color: var(--accent); }
+
+  footer {
+    position: relative;
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text2);
+    font-size: 13px;
+    background-color: var(--bg);
+    border-top: 1px solid var(--border);
+    z-index: 10;
+  }
+
+  @media (max-width: 768px) {
+    .hero-section h1 { font-size: 54px; }
+    .hero-section p { font-size: 16px; }
+  }
+</style>
 <body>
 
+  <div id="canvas-container"></div>
+  <div class="overlay-3d"></div>
+
   <header>
-    <div class="logo">FITCORE</div>
-    <a href="index.html" class="btn-primary">Entrar no App</a>
+    <div class="logo">FIT<span>CORE</span></div>
+    <div class="header-actions">
+      <button class="btn-nav-link" onclick="abrirAuth('login')">Entrar</button>
+      <button class="btn-primary" onclick="abrirAuth('register')">Criar Conta</button>
+    </div>
   </header>
 
-  <section class="hero">
-    <h1>O seu aplicativo definitivo de <span>Treino e Dieta</span></h1>
-    <p>Acompanhe suas cargas, calcule seus macros, bata sua meta de água e veja sua evolução corporal em um só lugar. Simples, rápido e direto ao ponto.</p>
-    <a href="index.html" class="btn-primary" style="font-size: 18px; padding: 16px 36px;">Começar Agora Gratuitamente</a>
+  <section class="hero-section">
+    <div class="hero-content">
+      <h1>O Ecossistema Definitivo <br><span>Para o Teu Corpo</span></h1>
+      <p>Esqueça as planilhas confusas. Controle as suas cargas, planeie os seus macros e acompanhe a sua evolução física com ferramentas de alta performance.</p>
+      <button class="btn-primary" style="font-size: 16px; padding: 16px 36px;" onclick="abrirAuth('register')">Começar Agora Gratuitamente</button>
+    </div>
   </section>
 
-  <section class="features">
-    <div class="feature-card">
-      <div class="icon">💪</div>
-      <h3>Fichas Inteligentes</h3>
-      <p>Monte seus planos A/B/C, registre as cargas de cada exercício e use o cronômetro integrado para não perder o tempo de descanso.</p>
-    </div>
-    <div class="feature-card">
-      <div class="icon">🥗</div>
-      <h3>Dieta sob Medida</h3>
-      <p>Calculadora de TMB integrada. Descubra exatamente quanto de Proteína, Carboidrato e Gordura você precisa para atingir seu objetivo.</p>
-    </div>
-    <div class="feature-card">
-      <div class="icon">📈</div>
-      <h3>Evolução Real</h3>
-      <p>Acompanhe seu peso através de gráficos visuais limpos e registre seu histórico de treinos para nunca perder a motivação.</p>
+  <section class="features-section">
+    <div class="grid-features">
+      <div class="feature-card">
+        <h3>💪 Fichas de Treino</h3>
+        <p>Monte treinos estruturados, controle cargas por série e utilize o cronómetro de descanso integrado focado em hipertrofia.</p>
+      </div>
+      <div class="feature-card">
+        <h3>🥗 Dieta Dinâmica</h3>
+        <p>Calcule a sua Taxa Metabólica Basal e controle de forma simples os seus alvos diários de Proteínas, Carbos e Gorduras.</p>
+      </div>
+      <div class="feature-card">
+        <h3>📈 Mapeamento de Peso</h3>
+        <p>Monitore o seu peso através de gráficos analíticos limpos e audite o seu histórico para garantir consistência.</p>
+      </div>
     </div>
   </section>
+
+  <div class="auth-overlay" id="auth-overlay" onclick="fecharAuth(event)">
+    <div class="auth-modal">
+      <div class="auth-tabs">
+        <button class="auth-tab-btn" id="tab-btn-login" onclick="mudarTab('login')">Entrar</button>
+        <button class="auth-tab-btn" id="tab-btn-register" onclick="mudarTab('register')">Criar Conta</button>
+      </div>
+
+      <div class="auth-form" id="form-login">
+        <div>
+          <label>E-mail</label>
+          <input type="text" placeholder="seu@email.com" id="login-email"/>
+        </div>
+        <div>
+          <label>Senha</label>
+          <input type="password" placeholder="••••••••" id="login-senha"/>
+        </div>
+        <button class="btn-primary" style="margin-top: 8px;" onclick="executarLogin()">Acessar App</button>
+      </div>
+
+      <div class="auth-form" id="form-register">
+        <div>
+          <label>Seu Nome</label>
+          <input type="text" placeholder="Ex: João Silva" id="reg-nome"/>
+        </div>
+        <div>
+          <label>E-mail</label>
+          <input type="text" placeholder="seu@email.com" id="reg-email"/>
+        </div>
+        <div>
+          <label>Senha</label>
+          <input type="password" placeholder="Mínimo 6 caracteres" id="reg-senha"/>
+        </div>
+        <button class="btn-primary" style="margin-top: 8px;" onclick="executarRegistro()">Concluir Cadastro</button>
+      </div>
+    </div>
+  </div>
 
   <footer>
-    <p>&copy; 2026 FitCore App. Transformando vidas e corpos.</p>
+    <p>&copy; 2026 FitCore App. Engenharia aplicada ao corpo.</p>
   </footer>
 
+  <script>
+    const overlay = document.getElementById('auth-overlay');
+    
+    function abrirAuth(tipo) {
+      overlay.classList.add('open');
+      mudarTab(tipo);
+    }
+    
+    function fecharAuth(e) {
+      if(e.target === overlay) overlay.classList.remove('open');
+    }
+
+    function mudarTab(tipo) {
+      document.querySelectorAll('.auth-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+      
+      document.getElementById(`tab-btn-${tipo}`).classList.add('active');
+      document.getElementById(`form-${tipo}`).classList.add('active');
+    }
+
+    // Ação de Criar Conta Integrada com o Banco Local (LocalStorage)
+    function executarRegistro() {
+      const nomeVal = document.getElementById('reg-nome').value.trim();
+      if(!nomeVal) { alert('Por favor, insira o seu nome.'); return; }
+      
+      // Cria a estrutura padrão de perfil do FitCore e injeta o nome escolhido
+      const perfilMock = {
+        nome: nomeVal,
+        foto: '',
+        idade: '',
+        peso: '',
+        altura: '',
+        objetivo: 'hipertrofia'
+      };
+      
+      // Salva no LocalStorage simulando o banco do app
+      localStorage.setItem('fitcore_perfil', JSON.stringify(perfilMock));
+      
+      // Envia o usuário direto para o App já configurado
+      window.location.href = 'index.html';
+    }
+
+    function executarLogin() {
+      // Simulação profissional de Login, direciona direto para o painel
+      window.location.href = 'index.html';
+    }
+  </script>
+
+  <script>
+    let scene, camera, renderer, objectsGroup;
+    let mouseX = 0, mouseY = 0;
+    let targetX = 0, targetY = 0;
+
+    function init3D() {
+      const container = document.getElementById('canvas-container');
+
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.z = 15;
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      objectsGroup = new THREE.Group();
+
+      const metalBarMaterial = new THREE.MeshStandardMaterial({
+        color: 0xdddddd,
+        metalness: 1.0,
+        roughness: 0.15
+      });
+
+      const ironPlateMaterial = new THREE.MeshStandardMaterial({
+        color: 0x1a1a1a,
+        metalness: 0.8,
+        roughness: 0.5
+      });
+
+      function createHalter() {
+        const halter = new THREE.Group();
+        const barGeom = new THREE.CylinderGeometry(0.12, 0.12, 3.2, 16);
+        const bar = new THREE.Mesh(barGeom, metalBarMaterial);
+        bar.rotation.z = Math.PI / 2;
+        halter.add(bar);
+
+        const plateGeom1 = new THREE.CylinderGeometry(1.1, 1.1, 0.4, 32);
+        const plateGeom2 = new THREE.CylinderGeometry(0.9, 0.9, 0.3, 32);
+
+        const p1L = new THREE.Mesh(plateGeom1, ironPlateMaterial); p1L.position.x = -1.0; p1L.rotation.z = Math.PI / 2; halter.add(p1L);
+        const p2L = new THREE.Mesh(plateGeom2, ironPlateMaterial); p2L.position.x = -1.4; p2L.rotation.z = Math.PI / 2; halter.add(p2L);
+        const p1R = new THREE.Mesh(plateGeom1, ironPlateMaterial); p1R.position.x = 1.0; p1R.rotation.z = Math.PI / 2; halter.add(p1R);
+        const p2R = new THREE.Mesh(plateGeom2, ironPlateMaterial); p2R.position.x = 1.4; p2R.rotation.z = Math.PI / 2; halter.add(p2R);
+        return halter;
+      }
+
+      function createAnilha() {
+        const anilha = new THREE.Group();
+        const bodyGeom = new THREE.CylinderGeometry(1.4, 1.4, 0.3, 32);
+        const body = new THREE.Mesh(bodyGeom, ironPlateMaterial);
+        body.rotation.z = Math.PI / 2;
+        anilha.add(body);
+        return anilha;
+      }
+
+      for (let i = 0; i < 12; i++) {
+        const obj = (i % 2 === 0) ? createHalter() : createAnilha();
+        const lado = i % 2 === 0 ? 1 : -1;
+        obj.position.x = (Math.random() * 8 + 5) * lado;
+        obj.position.y = (Math.random() - 0.5) * 14;
+        obj.position.z = (Math.random() - 0.5) * 10 - 2;
+        obj.rotation.x = Math.random() * Math.PI;
+        obj.rotation.y = Math.random() * Math.PI;
+        obj.userData = {
+          speedX: (Math.random() - 0.5) * 0.006,
+          speedY: (Math.random() - 0.5) * 0.006
+        };
+        objectsGroup.add(obj);
+      }
+
+      scene.add(objectsGroup);
+
+      const ambient = new THREE.AmbientLight(0xffffff, 0.4); scene.add(ambient);
+      const light1 = new THREE.DirectionalLight(0xffffff, 1.2); light1.position.set(10, 10, 10); scene.add(light1);
+      const light2 = new THREE.DirectionalLight(0xffffff, 0.5); light2.position.set(-10, -10, 5); scene.add(light2);
+      const brandLight = new THREE.PointLight(0xc8f135, 1.5, 30); brandLight.position.set(0, 4, 5); scene.add(brandLight);
+
+      window.addEventListener('resize', onWindowResize);
+      document.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('scroll', onScroll);
+      animate();
+    }
+
+    function onMouseMove(event) {
+      mouseX = (event.clientX - window.innerWidth / 2) / window.innerWidth;
+      mouseY = (event.clientY - window.innerHeight / 2) / window.innerHeight;
+    }
+
+    function onScroll() {
+      objectsGroup.position.y = window.scrollY * 0.015;
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      targetX += (mouseX - targetX) * 0.05;
+      targetY += (mouseY - targetY) * 0.05;
+      objectsGroup.rotation.y = targetX * 0.8;
+      objectsGroup.rotation.x = targetY * 0.5;
+      objectsGroup.children.forEach(obj => {
+        obj.rotation.x += obj.userData.speedX;
+        obj.rotation.y += obj.userData.speedY;
+      });
+      renderer.render(scene, camera);
+    }
+
+    window.onload = init3D;
+  </script>
 </body>
-</html>
+</html>   
