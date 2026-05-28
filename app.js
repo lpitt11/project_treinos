@@ -8,6 +8,7 @@ const state = {
   dieta: { meta: { cal: 0, prot: 0, carb: 0, gord: 0 }, refeicoes: [] },
   agua: { data: '', ml: 0, meta: 3000 },
   pesos: [], // Historico de pesos
+  cargas: [], // Historico de cargas
   editingPlanoId: null,
   editingCardapioId: null,
   editingRefeicaoId: null,
@@ -62,6 +63,7 @@ async function load() {
 
   if (data && data.app_state) {
     Object.assign(state, data.app_state);
+    if (!state.cargas) state.cargas = []; // Prevenção para usuários antigos
   } else {
     const { error: insErr } = await supaClient.from('user_state').insert([{ user_id: currentUserId, app_state: state }]);
     if (insErr) console.error("Erro ao criar linha base: ", insErr);
@@ -86,9 +88,11 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     
     if(btn.dataset.tab === 'dashboard') {
       updateDashboard();
-      renderPesoChart();
     } else if(btn.dataset.tab === 'cardapios') {
       renderCardapios();
+    } else if (btn.dataset.tab === 'progresso') {
+      renderPesoChart();
+      renderCargas();
     }
   });
 });
@@ -176,11 +180,11 @@ function updateDashboard() {
         }
 
         calendarHTML += `
-          <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1;">
-            <div style="width: 34px; height: 34px; border-radius: 50%; background: ${bg}; border: ${border}; color: ${color}; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; transition: all 0.2s;">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1;">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: ${bg}; border: ${border}; color: ${color}; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; transition: all 0.2s;">
               ${content}
             </div>
-            <span style="font-size: 10px; color: var(--text3);">${dayDate.getDate().toString().padStart(2,'0')}/${(dayDate.getMonth()+1).toString().padStart(2,'0')}</span>
+            <span style="font-size: 12px; color: var(--text3); font-weight: 500;">${dayDate.getDate().toString().padStart(2,'0')}/${(dayDate.getMonth()+1).toString().padStart(2,'0')}</span>
           </div>
         `;
     }
@@ -195,9 +199,6 @@ function updateDashboard() {
   }).length;
 
   document.getElementById('stat-treinos').textContent = treinosMes;
-  document.getElementById('stat-exercicios').textContent = state.planos.reduce((acc, p) => acc + p.exercicios.length, 0);
-  document.getElementById('stat-planos').textContent = state.planos.length;
-  document.getElementById('stat-refeicoes').textContent = state.dieta.refeicoes.length;
 
   const diasSemana = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
   const diaHoje = diasSemana[hoje.getDay()];
@@ -211,7 +212,7 @@ function updateDashboard() {
       <li class="hover-card" onclick="abrirExecucao('${p.id}')" title="Clique para iniciar o treino">
         <span style="display:flex; align-items:center; gap:8px;">
           <span style="color:var(--accent);">▶</span> 
-          <strong style="color:var(--text);">${p.nome}</strong>
+          <strong style="color:var(--text);">${p.protocolo ? escHtml(p.protocolo) + ' - ' : ''}${p.nome}</strong>
         </span>
         <span class="dia-tag">${diaHoje}</span>
       </li>
@@ -274,7 +275,7 @@ document.getElementById('btn-salvar-meta-agua').addEventListener('click', () => 
   closeModal('modal-meta-agua');
 });
 
-// ===== MÓDULO: GRÁFICO DE PESO =====
+// ===== MÓDULO: PROGRESSO DE PESO E CARGAS =====
 let pesoChartInst = null;
 function renderPesoChart() {
   const ctx = document.getElementById('pesoChart').getContext('2d');
@@ -325,6 +326,44 @@ document.getElementById('btn-salvar-peso').addEventListener('click', () => {
   save();
   closeModal('modal-peso');
   renderPesoChart();
+});
+
+// ===== MÓDULO: CARGAS =====
+function renderCargas() {
+  const lista = document.getElementById('lista-cargas');
+  if(!state.cargas) state.cargas = [];
+  if(state.cargas.length === 0) {
+    lista.innerHTML = '<li class="empty-msg">Nenhuma carga registrada.</li>';
+    return;
+  }
+  const sorted = [...state.cargas].sort((a,b) => b.data.localeCompare(a.data));
+  lista.innerHTML = sorted.map(c => `
+    <li>
+      <span><strong>${escHtml(c.exercicio)}</strong> <span style="color:var(--text2);font-size:12px;margin-left:8px">${formatDate(c.data)}</span></span>
+      <span style="color:var(--accent);font-weight:bold">${c.peso} kg</span>
+    </li>
+  `).join('');
+}
+
+function abrirModalCarga() {
+  document.getElementById('input-data-carga').value = new Date().toISOString().split('T')[0];
+  document.getElementById('input-carga-exercicio').value = '';
+  document.getElementById('input-carga-peso').value = '';
+  openModal('modal-carga');
+}
+
+document.getElementById('btn-salvar-carga').addEventListener('click', () => {
+  const ex = document.getElementById('input-carga-exercicio').value.trim();
+  const p = parseFloat(document.getElementById('input-carga-peso').value);
+  const d = document.getElementById('input-data-carga').value;
+
+  if(!ex || !p || !d) { alert('Preencha exercício, carga e data.'); return; }
+  if(!state.cargas) state.cargas = [];
+
+  state.cargas.push({ id: uid(), exercicio: ex, peso: p, data: d });
+  save();
+  closeModal('modal-carga');
+  renderCargas();
 });
 
 // ===== MÓDULO: CRONÔMETRO DE DESCANSO (SEGUNDO PLANO) =====
@@ -409,6 +448,7 @@ function playBeep() {
 document.getElementById('btn-novo-plano').addEventListener('click', () => {
   state.editingPlanoId = null;
   state.tempExercicios = [];
+  document.getElementById('plano-protocolo').value = '';
   document.getElementById('plano-nome').value = '';
   document.getElementById('modal-plano-title').textContent = 'Novo Plano de Treino';
   document.querySelectorAll('.dia-btn:not(.c-dia-btn)').forEach(b => b.classList.remove('selected'));
@@ -417,6 +457,7 @@ document.getElementById('btn-novo-plano').addEventListener('click', () => {
 });
 
 document.getElementById('btn-salvar-plano').addEventListener('click', () => {
+  const protocolo = document.getElementById('plano-protocolo').value.trim();
   const nome = document.getElementById('plano-nome').value.trim();
   if (!nome) { alert('Digite um nome para o plano.'); return; }
   const dias = [...document.querySelectorAll('#dias-selector .dia-btn.selected')].map(b => b.dataset.dia);
@@ -424,12 +465,13 @@ document.getElementById('btn-salvar-plano').addEventListener('click', () => {
   if (state.editingPlanoId) {
     const idx = state.planos.findIndex(p => p.id === state.editingPlanoId);
     if (idx !== -1) {
+      state.planos[idx].protocolo = protocolo;
       state.planos[idx].nome = nome;
       state.planos[idx].dias = dias;
       state.planos[idx].exercicios = [...state.tempExercicios];
     }
   } else {
-    state.planos.push({ id: uid(), nome, dias, exercicios: [...state.tempExercicios] });
+    state.planos.push({ id: uid(), protocolo, nome, dias, exercicios: [...state.tempExercicios] });
   }
   save();
   closeModal('modal-plano');
@@ -557,6 +599,7 @@ document.getElementById('btn-gerar-ia').addEventListener('click', async () => {
   // Processa e joga direto para os Planos Salvos do aplicativo
   planosGerados.forEach(plano => {
     plano.id = uid();
+    plano.protocolo = 'Protocolo IA'; // Adiciona a tag de protocolo na IA automaticamente
     // Atribui IDs de execução para os exercícios funcionarem no modo de treino
     plano.exercicios.forEach(ex => ex.id = uid()); 
     state.planos.push(plano);
@@ -585,6 +628,7 @@ function renderPlanos() {
   }
   grid.innerHTML = state.planos.map(p => `
     <div class="plano-card">
+      ${p.protocolo ? `<div style="color:var(--accent); font-size:11px; text-transform:uppercase; font-weight:bold; letter-spacing:1px; margin-bottom: -8px;">${escHtml(p.protocolo)}</div>` : ''}
       <div class="plano-nome">${escHtml(p.nome)}</div>
       <div class="plano-dias">${p.dias.map(d => `<span class="dia-tag">${d}</span>`).join('') || '<span style="color:var(--text3);font-size:12px">Nenhum dia definido</span>'}</div>
       <div class="plano-exercicios-count">${p.exercicios.length} exercício${p.exercicios.length !== 1 ? 's' : ''}</div>
@@ -614,6 +658,7 @@ function editarPlano(id) {
   if (!plano) return;
   state.editingPlanoId = id;
   state.tempExercicios = [...plano.exercicios.map(e => ({...e}))];
+  document.getElementById('plano-protocolo').value = plano.protocolo || '';
   document.getElementById('plano-nome').value = plano.nome;
   document.getElementById('modal-plano-title').textContent = 'Editar Plano';
   document.querySelectorAll('#dias-selector .dia-btn').forEach(b => {
@@ -648,6 +693,7 @@ function renderExecutar() {
   }
   grid.innerHTML = state.planos.map(p => `
     <div class="plano-card hover-card" onclick="abrirExecucao('${p.id}')" style="cursor: pointer; border-color: var(--accent); background: rgba(200,241,53,0.02);">
+      ${p.protocolo ? `<div style="color:var(--accent); font-size:11px; text-transform:uppercase; font-weight:bold; letter-spacing:1px; margin-bottom: 4px;">${escHtml(p.protocolo)}</div>` : ''}
       <div style="display:flex; justify-content:space-between; align-items:flex-start;">
         <div class="plano-nome" style="font-size: 28px;">${escHtml(p.nome)}</div>
         <div style="background: var(--accent); color: var(--bg); border-radius: 50%; width: 36px; height: 36px; display:flex; align-items:center; justify-content:center; font-size: 18px;">▶</div>
@@ -663,7 +709,7 @@ function abrirExecucao(id) {
   if (!plano) return;
   
   if (currentExecPlanoId === id && isWorkoutRunning) {
-    document.getElementById('exec-plano-nome').textContent = plano.nome;
+    document.getElementById('exec-plano-nome').textContent = plano.protocolo ? `${plano.protocolo} - ${plano.nome}` : plano.nome;
     document.getElementById('exec-plano-dias').textContent = plano.dias.length > 0 ? plano.dias.join(', ') : 'Dias não definidos';
     document.getElementById('btn-iniciar-treino').style.display = 'none';
     document.getElementById('btn-concluir-treino').style.display = 'inline-block';
@@ -684,7 +730,7 @@ function abrirExecucao(id) {
     document.getElementById('btn-iniciar-treino').style.display = 'inline-block';
     document.getElementById('btn-concluir-treino').style.display = 'none';
     
-    document.getElementById('exec-plano-nome').textContent = plano.nome;
+    document.getElementById('exec-plano-nome').textContent = plano.protocolo ? `${plano.protocolo} - ${plano.nome}` : plano.nome;
     document.getElementById('exec-plano-dias').textContent = plano.dias.length > 0 ? plano.dias.join(', ') : 'Dias não definidos';
   }
 
@@ -774,17 +820,35 @@ function concluirTreino() {
   if(!plano) return;
   
   const minutos = Math.max(1, Math.ceil(workoutElapsedSeconds / 60));
+  const dataHoje = new Date().toISOString().split('T')[0];
   
+  // 1. Salvar Treino no Histórico
   const registro = {
     id: uid(),
     planoId: plano.id,
     planoNome: plano.nome,
-    data: new Date().toISOString().split('T')[0],
+    data: dataHoje,
     duracao: minutos,
     obs: 'Treino finalizado com sucesso.',
   };
-  
   state.historico.push(registro);
+  
+  // 2. AUTOMAÇÃO DE CARGAS: Salvar exercícios concluídos no Progresso
+  if (!state.cargas) state.cargas = [];
+  
+  checkedExerciciosIds.forEach(exId => {
+    const ex = plano.exercicios.find(e => e.id === exId);
+    // Verifica se achou o exercício e se a carga foi preenchida (diferente de vazio)
+    if (ex && ex.carga && ex.carga.trim() !== '' && ex.carga !== '0') {
+      state.cargas.push({
+        id: uid(),
+        exercicio: ex.nome, // Pega o nome exato do exercício
+        peso: ex.carga,     // Pega a carga que estava configurada nele
+        data: dataHoje
+      });
+    }
+  });
+
   save();
   
   checkedExerciciosIds = [];
@@ -793,6 +857,7 @@ function concluirTreino() {
   
   closeModal('modal-executar');
   renderHistorico();
+  if (typeof renderCargas === 'function') renderCargas(); // Atualiza a tela de cargas por trás
   updateDashboard();
 }
 
@@ -1294,6 +1359,7 @@ async function initApp() {
   renderCardapios();
   renderDieta();
   renderHistorico();
+  if (typeof renderCargas === 'function') renderCargas();
   renderPesoChart();
   
   if (typeof renderPerfil === 'function') renderPerfil(); 

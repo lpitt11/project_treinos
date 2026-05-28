@@ -36,6 +36,10 @@
     <button class="nav-btn" data-tab="historico" title="Histórico">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg>
     </button>
+
+    <button class="nav-btn" data-tab="progresso" title="Meu Progresso">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18" stroke-linecap="round"/><path d="M19 9l-5 5-4-4-5 5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
     
     <button class="nav-btn" data-tab="perfil" title="Meu Perfil" style="margin-top: auto;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7" stroke-linecap="round"/></svg>
@@ -54,7 +58,6 @@
     <button class="theme-option active" data-theme-val="dark">🌙 Modo Escuro</button>
     <button class="theme-option" data-theme-val="light">☀️ Modo Claro</button>
   </div>
-  </nav>
 
   <main class="main">
 
@@ -69,29 +72,16 @@
           </div>
         </div>
         
-        <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px;">
-          <p style="font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.8px;">Sua Constância na Semana</p>
-          <div id="weekly-calendar" style="display: flex; justify-content: space-between; gap: 8px;">
+        <div style="background: rgba(200,241,53,0.05); border: 1px solid var(--accent); border-radius: var(--radius); padding: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <p style="font-size: 14px; font-weight: 600; color: var(--text); text-transform: uppercase; margin: 0; letter-spacing: 1px;">Sua Constância na Semana</p>
+            <div style="text-align: right; display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 12px; color: var(--text2); text-transform: uppercase; font-weight: bold;">Treinos no mês: </span>
+              <span style="font-family: var(--font-display); font-size: 32px; color: var(--accent); line-height: 1;" id="stat-treinos">0</span>
+            </div>
+          </div>
+          <div id="weekly-calendar" style="display: flex; justify-content: space-between; gap: 12px;">
              </div>
-        </div>
-      </div>
-
-      <div class="cards-row">
-        <div class="stat-card accent">
-          <span class="stat-label">Treinos esse mês</span>
-          <span class="stat-value" id="stat-treinos">0</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Exercícios cadastrados</span>
-          <span class="stat-value" id="stat-exercicios">0</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Planos de treino</span>
-          <span class="stat-value" id="stat-planos">0</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Refeições na dieta</span>
-          <span class="stat-value" id="stat-refeicoes">0</span>
         </div>
       </div>
 
@@ -114,6 +104,31 @@
           </div>
         </div>
 
+        <div class="card">
+          <h2 class="card-title">Próximos treinos</h2>
+          <ul class="list-simple" id="proximos-treinos">
+            <li class="empty-msg">Nenhum plano criado ainda.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">Histórico recente</h2>
+        <ul class="list-simple" id="historico-recente">
+          <li class="empty-msg">Nenhum treino registrado.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="tab-content" id="tab-progresso">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Meu Progresso</h1>
+          <p class="page-sub">Acompanhe sua evolução de peso e cargas utilizadas</p>
+        </div>
+      </div>
+
+      <div class="two-col" style="margin-bottom: 28px;">
         <div class="card" style="display: flex; flex-direction: column;">
            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
              <h2 class="card-title" style="margin:0;">📉 Evolução de Peso</h2>
@@ -123,19 +138,14 @@
              <canvas id="pesoChart"></canvas>
            </div>
         </div>
-      </div>
 
-      <div class="two-col">
-        <div class="card">
-          <h2 class="card-title">Próximos treinos</h2>
-          <ul class="list-simple" id="proximos-treinos">
-            <li class="empty-msg">Nenhum plano criado ainda.</li>
-          </ul>
-        </div>
-        <div class="card">
-          <h2 class="card-title">Histórico recente</h2>
-          <ul class="list-simple" id="historico-recente">
-            <li class="empty-msg">Nenhum treino registrado.</li>
+        <div class="card" style="display: flex; flex-direction: column;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+            <h2 class="card-title" style="margin:0;">🏋️ Cargas Utilizadas</h2>
+            <button class="btn-ghost" style="padding:4px 8px; font-size:12px;" onclick="abrirModalCarga()">+ Registrar Carga</button>
+          </div>
+          <ul class="list-simple" id="lista-cargas" style="max-height: 250px; overflow-y: auto;">
+            <li class="empty-msg">Nenhuma carga registrada.</li>
           </ul>
         </div>
       </div>
@@ -284,6 +294,8 @@
         <button class="modal-close" data-close="modal-plano">&times;</button>
       </div>
       <div class="modal-body">
+        <label>Protocolo (Mês/Fase)</label>
+        <input type="text" id="plano-protocolo" placeholder="Ex: Protocolo 1 (Força)"/>
         <label>Nome do plano</label>
         <input type="text" id="plano-nome" placeholder="Ex: Treino A - Peito e Tríceps"/>
         <label>Dias da semana</label>
@@ -455,6 +467,27 @@
       <div class="modal-footer">
         <button class="btn-ghost" data-close="modal-peso">Cancelar</button>
         <button class="btn-primary" id="btn-salvar-peso">Salvar Evolução</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="modal-overlay" id="modal-carga">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>Registrar Carga</h2>
+        <button class="modal-close" data-close="modal-carga">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>Exercício</label>
+        <input type="text" id="input-carga-exercicio" placeholder="Ex: Supino Reto"/>
+        <label>Carga (kg)</label>
+        <input type="number" step="0.5" id="input-carga-peso" placeholder="Ex: 20"/>
+        <label>Data</label>
+        <input type="date" id="input-data-carga"/>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" data-close="modal-carga">Cancelar</button>
+        <button class="btn-primary" id="btn-salvar-carga">Salvar Carga</button>
       </div>
     </div>
   </div>
