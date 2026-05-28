@@ -27,9 +27,10 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
   window.location.href = 'landing.html';
 });
 
-// ===== PERSISTENCE COM SUPABASE =====
+// ===== PERSISTENCE COM SUPABASE (USANDO UPDATE SEGURO) =====
 async function save() {
   if (!currentUserId) return;
+  
   const { error } = await supaClient
     .from('user_state')
     .update({ app_state: state })
@@ -73,7 +74,6 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 // ===== NAVIGATION =====
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    // Ignora botões que não são de abas
     if (!btn.dataset.tab) return; 
 
     document.querySelectorAll('.nav-btn').forEach(b => {
@@ -129,34 +129,28 @@ document.getElementById('btn-confirm-delete').addEventListener('click', () => {
   closeModal('modal-confirm');
 });
 
-// ===== DASHBOARD (ATUALIZADO COM BOAS-VINDAS E CALENDÁRIO) =====
+// ===== DASHBOARD =====
 function updateDashboard() {
   const hoje = new Date();
   
-  // Exibe a Data por extenso
   document.getElementById('dashboard-date').textContent =
     hoje.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-  // Nome e Foto no Cabeçalho
   const primeiroNome = state.perfil.nome ? state.perfil.nome.split(' ')[0] : 'Atleta';
   document.getElementById('dashboard-welcome').textContent = `Bem-vindo(a), ${primeiroNome}!`;
   
   if (state.perfil.foto) {
     document.getElementById('dashboard-user-foto').src = state.perfil.foto;
   } else {
-    // Foto padrão caso não tenha
     document.getElementById('dashboard-user-foto').src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239090a0'><circle cx='12' cy='8' r='4'/><path d='M4 20c0-4 4-7 8-7s8 3 8 7'/></svg>";
   }
 
-  // Lógica do Calendário Semanal
   const calendarContainer = document.getElementById('weekly-calendar');
   if (calendarContainer) {
-    // Formata a data para comparar com precisão (YYYY-MM-DD local)
     const getLocalYYYYMMDD = (d) => `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
-    
-    const currentDayOfWeek = hoje.getDay(); // 0 = Domingo, 6 = Sábado
+    const currentDayOfWeek = hoje.getDay(); 
     const startOfWeek = new Date(hoje);
-    startOfWeek.setDate(hoje.getDate() - currentDayOfWeek); // Volta para Domingo
+    startOfWeek.setDate(hoje.getDate() - currentDayOfWeek); 
     
     const diasAbrev = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
     let calendarHTML = '';
@@ -167,7 +161,6 @@ function updateDashboard() {
         dayDate.setDate(startOfWeek.getDate() + i);
         const dateStr = getLocalYYYYMMDD(dayDate);
         
-        // Verifica se há algum treino no histórico para esse dia exato
         const trained = state.historico.some(h => h.data === dateStr);
         const isToday = dateStr === hojeStr;
         
@@ -176,16 +169,10 @@ function updateDashboard() {
         let color = 'var(--text2)';
         let content = diasAbrev[i];
         
-        // Se treinou, a bolinha fica destacada com verde
         if(trained) {
-            bg = 'var(--accent)';
-            border = '1px solid var(--accent)';
-            color = '#0d0d0f';
-            content = '✓';
+            bg = 'var(--accent)'; border = '1px solid var(--accent)'; color = '#0d0d0f'; content = '✓';
         } else if (isToday) {
-            // Apenas se for hoje, mas não treinou, dá uma borda levemente diferente
-            border = '1px solid var(--accent)';
-            color = 'var(--text)';
+            border = '1px solid var(--accent)'; color = 'var(--text)';
         }
 
         calendarHTML += `
@@ -200,7 +187,6 @@ function updateDashboard() {
     calendarContainer.innerHTML = calendarHTML;
   }
 
-  // Estatísticas normais
   const mesAtual = hoje.getMonth();
   const anoAtual = hoje.getFullYear();
   const treinosMes = state.historico.filter(h => {
@@ -455,6 +441,141 @@ document.getElementById('btn-salvar-plano').addEventListener('click', () => {
 document.querySelectorAll('.dia-btn:not(.c-dia-btn)').forEach(btn => {
   btn.addEventListener('click', () => btn.classList.toggle('selected'));
 });
+
+// ===== GERADOR INTELIGENTE DE ROTINAS (IA LOCAL) =====
+document.getElementById('btn-gerar-ia').addEventListener('click', async () => {
+  const objetivo = state.perfil.objetivo || 'hipertrofia';
+  let planosGerados = [];
+
+  // Montagem da estrutura de Segunda a Sexta focada em grupos musculares isolados
+  if (objetivo === 'hipertrofia') {
+    planosGerados = [
+      { nome: 'Treino A - Peito', dias: ['Seg'], exercicios: [
+        { nome: 'Supino Reto com Barra', grupo: 'Peito', series: 4, reps: '8-10', carga: '', isPiramide: false, descanso: 90, obs: 'Controlar a descida em 3 segundos.' },
+        { nome: 'Supino Inclinado c/ Halteres', grupo: 'Peito', series: 4, reps: '8-12', carga: '', isPiramide: false, descanso: 90, obs: 'Focar em encostar os bíceps no topo.' },
+        { nome: 'Crossover Polia Média', grupo: 'Peito', series: 3, reps: '10-12', carga: '', isPiramide: false, descanso: 60, obs: 'Cruzar levemente as mãos.' },
+        { nome: 'Voador (Peck Deck)', grupo: 'Peito', series: 3, reps: '12-15', carga: '', isPiramide: false, descanso: 60, obs: 'Apertar o peitoral por 1s no pico.' }
+      ]},
+      { nome: 'Treino B - Costas', dias: ['Ter'], exercicios: [
+        { nome: 'Puxada Frontal Aberta', grupo: 'Costas', series: 4, reps: '8-12', carga: '', isPiramide: false, descanso: 90, obs: 'Estufar o peito e puxar até o queixo.' },
+        { nome: 'Remada Curvada com Barra', grupo: 'Costas', series: 4, reps: '8-10', carga: '', isPiramide: false, descanso: 90, obs: 'Coluna reta e abdômen muito contraído.' },
+        { nome: 'Remada Serrote Unilateral', grupo: 'Costas', series: 3, reps: '10-12', carga: '', isPiramide: false, descanso: 60, obs: 'Puxar liderando pelo cotovelo.' },
+        { nome: 'Pulldown com Corda', grupo: 'Costas', series: 3, reps: '12-15', carga: '', isPiramide: false, descanso: 60, obs: 'Braços semi-esticados focando na grande dorsal.' }
+      ]},
+      { nome: 'Treino C - Pernas Completas', dias: ['Qua'], exercicios: [
+        { nome: 'Agachamento Livre', grupo: 'Pernas', series: 4, reps: '8-10', carga: '', isPiramide: false, descanso: 120, obs: 'Descer até quebrar a linha paralela.' },
+        { nome: 'Leg Press 45º', grupo: 'Pernas', series: 4, reps: '10-12', carga: '', isPiramide: false, descanso: 90, obs: 'Amplitude máxima sem descolar a lombar.' },
+        { nome: 'Cadeira Extensora', grupo: 'Pernas', series: 3, reps: '12-15', carga: '', isPiramide: false, descanso: 60, obs: 'Segurar 1 segundo em cima.' },
+        { nome: 'Mesa Flexora', grupo: 'Pernas', series: 4, reps: '10-12', carga: '', isPiramide: false, descanso: 60, obs: 'Contração forte focando nos isquiotibiais.' }
+      ]},
+      { nome: 'Treino D - Ombros', dias: ['Qui'], exercicios: [
+        { nome: 'Desenvolvimento c/ Halteres', grupo: 'Ombros', series: 4, reps: '8-12', carga: '', isPiramide: false, descanso: 90, obs: 'Não bater os halteres no topo do movimento.' },
+        { nome: 'Elevação Lateral', grupo: 'Ombros', series: 4, reps: '12-15', carga: '', isPiramide: false, descanso: 60, obs: 'Cotovelos levemente flexionados, subir até o ombro.' },
+        { nome: 'Elevação Frontal com Corda', grupo: 'Ombros', series: 3, reps: '12', carga: '', isPiramide: false, descanso: 60, obs: 'Movimento controlado para não usar impulso.' },
+        { nome: 'Crucifixo Inverso no Voador', grupo: 'Ombros', series: 3, reps: '12-15', carga: '', isPiramide: false, descanso: 60, obs: 'Foco total na parte de trás do ombro.' }
+      ]},
+      { nome: 'Treino E - Bíceps e Tríceps', dias: ['Sex'], exercicios: [
+        { nome: 'Rosca Direta na Barra W', grupo: 'Bíceps', series: 4, reps: '10-12', carga: '', isPiramide: false, descanso: 60, obs: 'Cotovelos travados ao lado do corpo.' },
+        { nome: 'Rosca Martelo c/ Halteres', grupo: 'Bíceps', series: 3, reps: '12', carga: '', isPiramide: false, descanso: 60, obs: 'Subida neutra focando no músculo braquial.' },
+        { nome: 'Tríceps Testa na Polia', grupo: 'Tríceps', series: 4, reps: '10-12', carga: '', isPiramide: false, descanso: 60, obs: 'Levar a barra até a linha do cabelo.' },
+        { nome: 'Tríceps Corda', grupo: 'Tríceps', series: 3, reps: '12-15', carga: '', isPiramide: false, descanso: 60, obs: 'Abrir totalmente a corda na contração final.' }
+      ]}
+    ];
+  } else if (objetivo === 'emagrecimento') {
+    planosGerados = [
+      { nome: 'Treino A - Peito e Cardio', dias: ['Seg'], exercicios: [
+        { nome: 'Supino Reto na Máquina', grupo: 'Peito', series: 4, reps: '15', carga: '', isPiramide: false, descanso: 45, obs: 'Cadência rápida mas controlada.' },
+        { nome: 'Flexão de Braços', grupo: 'Peito', series: 3, reps: 'Máx', carga: '', isPiramide: false, descanso: 45, obs: 'Se necessário, fazer com joelhos no chão.' },
+        { nome: 'Voador (Peck Deck)', grupo: 'Peito', series: 4, reps: '15-20', carga: '', isPiramide: false, descanso: 45, obs: 'Alta repetição para gerar queima local.' },
+        { nome: 'Burpees (HIIT)', grupo: 'Cardio', series: 4, reps: '12', carga: '', isPiramide: false, descanso: 60, obs: 'Salto explosivo no final, acelerar batimentos.' }
+      ]},
+      { nome: 'Treino B - Costas e Core', dias: ['Ter'], exercicios: [
+        { nome: 'Puxada Frontal Aberta', grupo: 'Costas', series: 4, reps: '15', carga: '', isPiramide: false, descanso: 45, obs: 'Sem paradas, manter tensão contínua.' },
+        { nome: 'Remada Baixa Triângulo', grupo: 'Costas', series: 4, reps: '15', carga: '', isPiramide: false, descanso: 45, obs: 'Aperta bem as escápulas atrás.' },
+        { nome: 'Face Pull na Corda', grupo: 'Costas', series: 3, reps: '15-20', carga: '', isPiramide: false, descanso: 45, obs: 'Puxar em direção ao rosto.' },
+        { nome: 'Prancha Abdominal', grupo: 'Abdômen', series: 4, reps: '45s', carga: '', isPiramide: false, descanso: 45, obs: 'Travar o abdômen e glúteos fortemente.' }
+      ]},
+      { nome: 'Treino C - Pernas Queima Alta', dias: ['Qua'], exercicios: [
+        { nome: 'Agachamento com Salto', grupo: 'Pernas', series: 4, reps: '15', carga: '', isPiramide: false, descanso: 60, obs: 'Amortecer a queda suavemente.' },
+        { nome: 'Afundo Alternado', grupo: 'Pernas', series: 4, reps: '12 cada', carga: '', isPiramide: false, descanso: 60, obs: 'Costas retas, descer afundando o quadril.' },
+        { nome: 'Cadeira Abdutora', grupo: 'Pernas', series: 3, reps: '20', carga: '', isPiramide: false, descanso: 45, obs: 'Movimento rápido para queima do glúteo lateral.' },
+        { nome: 'Polichinelos (HIIT)', grupo: 'Cardio', series: 4, reps: '45s', carga: '', isPiramide: false, descanso: 45, obs: 'Velocidade máxima possível.' }
+      ]},
+      { nome: 'Treino D - Ombros e Core', dias: ['Qui'], exercicios: [
+        { nome: 'Desenvolvimento Máquina', grupo: 'Ombros', series: 4, reps: '15', carga: '', isPiramide: false, descanso: 45, obs: 'Focar na resistência do ombro.' },
+        { nome: 'Elevação Lateral Halteres', grupo: 'Ombros', series: 4, reps: '15-20', carga: '', isPiramide: false, descanso: 45, obs: 'Peso leve, foco na ardência.' },
+        { nome: 'Corda Naval (ou Kettlebell Swing)', grupo: 'Cardio', series: 4, reps: '30s', carga: '', isPiramide: false, descanso: 60, obs: 'Força total e velocidade.' },
+        { nome: 'Abdominal Infra Solo', grupo: 'Abdômen', series: 4, reps: '20', carga: '', isPiramide: false, descanso: 45, obs: 'Elevar as pernas sem descolar a lombar.' }
+      ]},
+      { nome: 'Treino E - Braços e HIIT', dias: ['Sex'], exercicios: [
+        { nome: 'Rosca na Polia Baixa', grupo: 'Bíceps', series: 4, reps: '15', carga: '', isPiramide: false, descanso: 45, obs: 'Pump muscular máximo.' },
+        { nome: 'Tríceps Polia Barra', grupo: 'Tríceps', series: 4, reps: '15', carga: '', isPiramide: false, descanso: 45, obs: 'Cotovelos não se movem para frente.' },
+        { nome: 'Mountain Climbers', grupo: 'Cardio', series: 4, reps: '40s', carga: '', isPiramide: false, descanso: 60, obs: 'Acelerar os joelhos no peito.' },
+        { nome: 'Abdominal Supra Curto', grupo: 'Abdômen', series: 3, reps: '25', carga: '', isPiramide: false, descanso: 45, obs: 'Apertar bem o core a cada subida.' }
+      ]}
+    ];
+  } else {
+    // Manutenção / Qualidade de Vida
+    planosGerados = [
+      { nome: 'Treino A - Peito', dias: ['Seg'], exercicios: [
+        { nome: 'Supino Reto c/ Halteres', grupo: 'Peito', series: 3, reps: '10-12', carga: '', isPiramide: false, descanso: 60, obs: 'Amplitude segura para articular.' },
+        { nome: 'Crucifixo Máquina', grupo: 'Peito', series: 3, reps: '12', carga: '', isPiramide: false, descanso: 60, obs: 'Alongar e contrair suavemente.' },
+        { nome: 'Flexão de Braços Inclinada', grupo: 'Peito', series: 3, reps: '10', carga: '', isPiramide: false, descanso: 60, obs: 'Apoiar mãos em um banco.' },
+        { nome: 'Prancha Isométrica', grupo: 'Abdômen', series: 3, reps: '30s', carga: '', isPiramide: false, descanso: 45, obs: 'Respiração cadenciada.' }
+      ]},
+      { nome: 'Treino B - Costas', dias: ['Ter'], exercicios: [
+        { nome: 'Puxada Frontal Triângulo', grupo: 'Costas', series: 3, reps: '10-12', carga: '', isPiramide: false, descanso: 60, obs: 'Puxar focado no meio das costas.' },
+        { nome: 'Remada Máquina Sentada', grupo: 'Costas', series: 3, reps: '12', carga: '', isPiramide: false, descanso: 60, obs: 'Postura confortável e ereta.' },
+        { nome: 'Hiperextensão Lombar Banco', grupo: 'Costas', series: 3, reps: '12', carga: '', isPiramide: false, descanso: 60, obs: 'Subir até o corpo ficar reto, não arquear mais.' },
+        { nome: 'Abdominal Supra Normal', grupo: 'Abdômen', series: 3, reps: '15-20', carga: '', isPiramide: false, descanso: 45, obs: 'Sem puxar o pescoço.' }
+      ]},
+      { nome: 'Treino C - Pernas', dias: ['Qua'], exercicios: [
+        { nome: 'Leg Press Horizontal', grupo: 'Pernas', series: 3, reps: '12', carga: '', isPiramide: false, descanso: 60, obs: 'Pés na largura do quadril.' },
+        { nome: 'Cadeira Extensora', grupo: 'Pernas', series: 3, reps: '12', carga: '', isPiramide: false, descanso: 60, obs: 'Foco na articulação saudável do joelho.' },
+        { nome: 'Cadeira Flexora', grupo: 'Pernas', series: 3, reps: '12', carga: '', isPiramide: false, descanso: 60, obs: 'Trabalho focado na parte de trás da coxa.' },
+        { nome: 'Panturrilha Sentado', grupo: 'Pernas', series: 3, reps: '15', carga: '', isPiramide: false, descanso: 45, obs: 'Subir esticando bem as panturrilhas.' }
+      ]},
+      { nome: 'Treino D - Ombros', dias: ['Qui'], exercicios: [
+        { nome: 'Desenvolvimento Máquina Articulada', grupo: 'Ombros', series: 3, reps: '10-12', carga: '', isPiramide: false, descanso: 60, obs: 'Proteger as articulações dos ombros.' },
+        { nome: 'Elevação Lateral Halteres Leves', grupo: 'Ombros', series: 3, reps: '12-15', carga: '', isPiramide: false, descanso: 60, obs: 'Amplitude até a altura dos ombros.' },
+        { nome: 'Encolhimento Halteres', grupo: 'Ombros', series: 3, reps: '15', carga: '', isPiramide: false, descanso: 60, obs: 'Elevar os ombros na direção das orelhas.' },
+        { nome: 'Prancha Lateral', grupo: 'Abdômen', series: 3, reps: '30s cada', carga: '', isPiramide: false, descanso: 45, obs: 'Manter quadril alinhado.' }
+      ]},
+      { nome: 'Treino E - Braços', dias: ['Sex'], exercicios: [
+        { nome: 'Rosca Alternada com Halteres', grupo: 'Bíceps', series: 3, reps: '12 cada', carga: '', isPiramide: false, descanso: 60, obs: 'Girando o pulso na subida.' },
+        { nome: 'Rosca Inversa Polia', grupo: 'Bíceps', series: 3, reps: '12', carga: '', isPiramide: false, descanso: 60, obs: 'Foco no antebraço e articulação do pulso.' },
+        { nome: 'Tríceps Polia com Barra', grupo: 'Tríceps', series: 3, reps: '12', carga: '', isPiramide: false, descanso: 60, obs: 'Movimento contínuo e macio.' },
+        { nome: 'Tríceps Banco (Mergulho)', grupo: 'Tríceps', series: 3, reps: '10-12', carga: '', isPiramide: false, descanso: 60, obs: 'Descer até o cotovelo formar 90 graus.' }
+      ]}
+    ];
+  }
+
+  const btnGerar = document.getElementById('btn-gerar-ia');
+  btnGerar.textContent = 'Gerando Treinos...';
+  btnGerar.disabled = true;
+
+  // Processa e joga direto para os Planos Salvos do aplicativo
+  planosGerados.forEach(plano => {
+    plano.id = uid();
+    // Atribui IDs de execução para os exercícios funcionarem no modo de treino
+    plano.exercicios.forEach(ex => ex.id = uid()); 
+    state.planos.push(plano);
+  });
+
+  await save();
+  
+  closeModal('modal-plano');
+  renderPlanos();
+  renderExecutar();
+  updateDashboard();
+  
+  // Reseta o botão no modal caso ele abra de novo
+  btnGerar.textContent = '✨ Gerar com IA';
+  btnGerar.disabled = false;
+  
+  alert(`Divisão de Segunda a Sexta gerada com sucesso para: ${objetivo.toUpperCase()}! 🔥 Pode conferir os seus 5 treinos novos.`);
+});
+
 
 function renderPlanos() {
   const grid = document.getElementById('planos-grid');
@@ -1150,7 +1271,7 @@ document.getElementById('btn-salvar-onboarding').addEventListener('click', async
   await save(); 
   
   if (typeof renderPerfil === 'function') {
-    renderPerfil(); 
+    renderPerfil(); // Atualiza a tela de perfil por trás
   }
   
   // Atualiza instantaneamente a tela inicial para mostrar o nome da pessoa
